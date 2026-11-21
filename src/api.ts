@@ -6,11 +6,7 @@ const SCRIPT_URL_KEY = `${STORAGE_PREFIX}script_url`;
 const MOCK_DB_KEY = `${STORAGE_PREFIX}mock_db_v1`;
 
 export function getScriptUrl(): string {
-  return localStorage.getItem(SCRIPT_URL_KEY) || (import.meta.env.VITE_APPS_SCRIPT_URL as string) || '';
-}
-
-export function setScriptUrl(url: string): void {
-  localStorage.setItem(SCRIPT_URL_KEY, url.trim());
+  return ((import.meta.env.VITE_APPS_SCRIPT_URL as string) || '').trim();
 }
 
 export function getCurrentIsoWeek(d = new Date()): string {

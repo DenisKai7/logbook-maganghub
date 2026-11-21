@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { api, getScriptUrl } from '../api';
+import { api } from '../api';
 import { User } from '../types';
-import { Lock, Mail, ArrowRight, ShieldCheck, Database, KeyRound, Sparkles } from 'lucide-react';
+import { Mail, ArrowRight, KeyRound } from 'lucide-react';
 
 interface Props {
   onLoginSuccess: (user: User, pin: string) => void;
-  onOpenSettings: () => void;
 }
 
 const PRESET_ACCOUNTS = [
@@ -14,13 +13,11 @@ const PRESET_ACCOUNTS = [
   { role: 'HR', name: 'Admin HR', email: 'hr@perusahaan.com', pin: '1234', desc: 'Administrator HRD' },
 ];
 
-export const LoginView: React.FC<Props> = ({ onLoginSuccess, onOpenSettings }) => {
+export const LoginView: React.FC<Props> = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const hasScriptUrl = Boolean(getScriptUrl());
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +37,7 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess, onOpenSettings }) =
         setError(res.message || 'Email atau PIN salah.');
       }
     } catch (err: any) {
-      setError(err.message || 'Koneksi gagal. Periksa koneksi internet atau URL API.');
+      setError(err.message || 'Koneksi gagal. Periksa koneksi internet atau server.');
     } finally {
       setLoading(false);
     }
@@ -72,37 +69,6 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess, onOpenSettings }) =
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-6 sm:px-10 rounded-3xl border border-stone-200/80 shadow-xl shadow-stone-200/30">
-          {/* Connection Status Banner */}
-          {hasScriptUrl ? (
-            <div className="mb-4 p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/60 flex items-center justify-between text-xs text-emerald-900">
-              <div className="flex items-center gap-1.5 truncate">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                <span className="font-medium truncate">Terhubung ke Apps Script</span>
-              </div>
-              <button
-                type="button"
-                onClick={onOpenSettings}
-                className="text-[11px] font-semibold text-emerald-800 underline hover:no-underline shrink-0 ml-2 cursor-pointer"
-              >
-                Ubah URL
-              </button>
-            </div>
-          ) : (
-            <div className="mb-4 p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/70 flex items-center justify-between text-xs text-amber-900">
-              <div className="flex items-center gap-1.5 truncate">
-                <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                <span className="font-medium truncate">Mode Simulasi Offline (Demo)</span>
-              </div>
-              <button
-                type="button"
-                onClick={onOpenSettings}
-                className="text-[11px] font-semibold text-amber-900 underline hover:no-underline shrink-0 ml-2 cursor-pointer"
-              >
-                Hubungkan API
-              </button>
-            </div>
-          )}
-
           <form onSubmit={handleLogin} className="space-y-4">
             {error && (
               <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 leading-relaxed">
@@ -193,24 +159,6 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess, onOpenSettings }) =
               ))}
             </div>
           </div>
-        </div>
-
-        {/* Footer status & settings button */}
-        <div className="mt-6 text-center">
-          <button
-            onClick={onOpenSettings}
-            className="inline-flex items-center gap-2 text-xs text-stone-500 hover:text-stone-800 transition-colors cursor-pointer"
-          >
-            <Database className="w-3.5 h-3.5 text-stone-400" />
-            <span>
-              Backend: {hasScriptUrl ? 'Google Apps Script Aktif' : 'Simulasi Offline Aktif'}
-            </span>
-            <span
-              className={`w-2 h-2 rounded-full ${
-                hasScriptUrl ? 'bg-emerald-500' : 'bg-amber-400'
-              }`}
-            />
-          </button>
         </div>
       </div>
     </div>
