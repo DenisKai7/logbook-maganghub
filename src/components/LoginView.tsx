@@ -7,12 +7,6 @@ interface Props {
   onLoginSuccess: (user: User, pin: string) => void;
 }
 
-const PRESET_ACCOUNTS = [
-  { role: 'Peserta', name: 'Andi Pratama', email: 'andi@magang.com', pin: '1234', desc: 'Peserta Divisi IT & Digital' },
-  { role: 'Mentor', name: 'Budi Santoso', email: 'budi@perusahaan.com', pin: '1234', desc: 'Mentor Divisi IT & Digital' },
-  { role: 'HR', name: 'Admin HR', email: 'hr@perusahaan.com', pin: '1234', desc: 'Administrator HRD' },
-];
-
 export const LoginView: React.FC<Props> = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [pin, setPin] = useState('');
@@ -41,12 +35,6 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSelectPreset = (presetEmail: string, presetPin: string) => {
-    setEmail(presetEmail);
-    setPin(presetPin);
-    setError('');
   };
 
   return (
@@ -124,38 +112,6 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess }) => {
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
-
-          {/* Quick preset accounts */}
-          <div className="mt-6 pt-5 border-t border-stone-100">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 mb-2.5 text-center">
-              Akses Cepat Akun Uji Coba
-            </p>
-            <div className="space-y-1.5">
-              {PRESET_ACCOUNTS.map(acc => (
-                <button
-                  key={acc.email}
-                  type="button"
-                  onClick={() => handleSelectPreset(acc.email, acc.pin)}
-                  className="w-full text-left p-2.5 rounded-xl border border-stone-100 hover:border-stone-300 hover:bg-stone-50 transition-colors flex items-center justify-between group cursor-pointer"
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <strong className="text-xs font-semibold text-stone-800 group-hover:text-stone-950">
-                        {acc.name}
-                      </strong>
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-stone-100 text-stone-600 font-medium">
-                        {acc.role}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-stone-400 mt-0.5">{acc.desc}</p>
-                  </div>
-                  <span className="text-[11px] font-mono text-stone-400 group-hover:text-stone-700">
-                    PIN: {acc.pin}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>
