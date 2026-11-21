@@ -8,13 +8,16 @@ import {
   HRData,
 } from "./types";
 
-// ponytail: in-memory + localStorage mock store covers offline test; upgrade to full GAS proxy when CORS requires it
 const STORAGE_PREFIX = "maganghub_";
-const SCRIPT_URL_KEY = `${STORAGE_PREFIX}script_url`;
 const MOCK_DB_KEY = `${STORAGE_PREFIX}mock_db_v1`;
 
+// GANTI dengan URL /exec dari deployment Web App yang AKTIF (Deploy > Manage deployments).
+// Bisa juga diatur lewat VITE_APPS_SCRIPT_URL di .env (nilai .env menimpa default ini).
 const DEFAULT_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbzZrxTZOvllQ8CjfMZH9sDguEEgwmbMsQ3OCWEC71sbP4XRlQS-Cv4KwnkFBiQdBI0udA/exec";
+  "https://script.google.com/macros/s/AKfycbw9muJq46TjvITq1Hlzuko6qJyc0SeTz8TaNkWzUa5915cIo3F52Z57dvV1rkvmWWEH/exec";
+
+// Set VITE_USE_MOCK=true di .env untuk tes offline memakai localStorage (tanpa Google Apps Script).
+const USE_MOCK = String(import.meta.env.VITE_USE_MOCK || "") === "true";
 
 export function getScriptUrl(): string {
   const envUrl = (import.meta.env.VITE_APPS_SCRIPT_URL as string) || "";
@@ -37,11 +40,18 @@ export function getCurrentIsoWeek(d = new Date()): string {
   return `${target.getFullYear()}-W${String(weekNum).padStart(2, "0")}`;
 }
 
+// Memakai tanggal lokal (bukan toISOString yang UTC) supaya tidak mundur sehari sebelum pukul 07.00 WIB.
 export function getTodayStr(d = new Date()): string {
-  return d.toISOString().split("T")[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
-// Initial seed matching the Apps Script setupDatabase()
+// ---------------------------------------------------------------------------
+// Mock database (hanya dipakai jika VITE_USE_MOCK=true)
+// ---------------------------------------------------------------------------
+
 interface MockDB {
   users: Array<User & { pin: string }>;
   weeklyPlans: WeeklyPlan[];
@@ -130,6 +140,10 @@ function getInitialMockDB(): MockDB {
   };
 }
 
+function saveMockDB(db: MockDB): void {
+  localStorage.setItem(MOCK_DB_KEY, JSON.stringify(db));
+}
+
 function loadMockDB(): MockDB {
   const raw = localStorage.getItem(MOCK_DB_KEY);
   if (!raw) {
@@ -146,83 +160,134 @@ function loadMockDB(): MockDB {
   }
 }
 
-function saveMockDB(db: MockDB): void {
-  localStorage.setItem(MOCK_DB_KEY, JSON.stringify(db));
-}
-
 export function resetMockData(): void {
   saveMockDB(getInitialMockDB());
 }
 
+// ---------------------------------------------------------------------------
+// Network
+// ---------------------------------------------------------------------------
+
+const STALE_DEPLOYMENT_HINT =
+  " (Server Google Apps Script yang dipanggil belum memuat action ini. " +
+  "Kemungkinan URL /exec di frontend mengarah ke deployment lama, atau deployment belum diperbarui ke New version. " +
+  "Periksa VITE_APPS_SCRIPT_URL / DEFAULT_SCRIPT_URL dan restart dev server.)";
+
 async function sendRequest<T>(
   payload: Record<string, any>,
 ): Promise<ApiResponse<T>> {
+  if (USE_MOCK) {
+    return mockExecute<T>(payload);
+  }
+
   const url = getScriptUrl();
 
-  // If live URL exists, try network call
-  if (url) {
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload),
-      });
+  if (import.meta.env.DEV) {
+    console.log("[api] URL:", url, "| action:", payload.action);
+  }
 
-      const text = await res.text();
-      let json: ApiResponse<T>;
-      try {
-        json = JSON.parse(text);
-      } catch {
-        if (
-          text.includes("Halaman Tidak Ditemukan") ||
-          text.includes("not found") ||
-          text.includes("Error 404")
-        ) {
-          return {
-            status: "error",
-            message:
-              'URL Google Apps Script mengembalikan 404 (Halaman Tidak Ditemukan). Pastikan deployment Web App aktif dan Who has access diset ke "Anyone".',
-          };
-        }
-        if (text.includes("accounts.google.com") || text.includes("Sign in")) {
-          return {
-            status: "error",
-            message:
-              'Izin ditolak Google. Pastikan saat Deploy Web App, opsi "Who has access" dipilih "Anyone" (bukan "Only myself").',
-          };
-        }
+  if (!url) {
+    return {
+      status: "error",
+      message:
+        "URL Google Apps Script belum diatur. Isi VITE_APPS_SCRIPT_URL atau DEFAULT_SCRIPT_URL.",
+    };
+  }
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload),
+    });
+
+    const text = await res.text();
+    let json: ApiResponse<T>;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      if (
+        text.includes("Halaman Tidak Ditemukan") ||
+        text.includes("not found") ||
+        text.includes("Error 404")
+      ) {
         return {
           status: "error",
           message:
-            "Respons dari server Google bukan format JSON. Periksa izin deployment Google Apps Script Anda.",
+            'URL Google Apps Script mengembalikan 404 (Halaman Tidak Ditemukan). Pastikan deployment Web App aktif dan Who has access diset ke "Anyone".',
         };
       }
-
-      return json;
-    } catch (err: any) {
+      if (text.includes("accounts.google.com") || text.includes("Sign in")) {
+        return {
+          status: "error",
+          message:
+            'Izin ditolak Google. Pastikan saat Deploy Web App, opsi "Who has access" dipilih "Anyone" (bukan "Only myself").',
+        };
+      }
       return {
         status: "error",
-        message: `Gagal terhubung ke Google Apps Script: ${err.message || "CORS/Network Error"}. Periksa koneksi atau URL Web App.`,
+        message:
+          "Respons dari server Google bukan format JSON. Periksa izin deployment Google Apps Script Anda.",
       };
     }
-  }
 
-  // Local storage mock implementation ONLY when url is completely empty
-  return mockExecute(payload);
+    // Beri petunjuk jelas jika deployment di server belum punya action tersebut.
+    if (
+      json.status === "error" &&
+      typeof json.message === "string" &&
+      json.message.startsWith("Action tidak dikenali")
+    ) {
+      return { ...json, message: json.message + STALE_DEPLOYMENT_HINT };
+    }
+
+    return json;
+  } catch (err: any) {
+    return {
+      status: "error",
+      message: `Gagal terhubung ke Google Apps Script: ${err.message || "CORS/Network Error"}. Periksa koneksi atau URL Web App.`,
+    };
+  }
 }
+
+// Cek deployment mana yang sedang dipanggil (membaca field "version" dari doGet).
+export async function pingBackend(): Promise<{
+  url: string;
+  ok: boolean;
+  version?: string;
+  message?: string;
+}> {
+  const url = getScriptUrl();
+  try {
+    const res = await fetch(url, { method: "GET" });
+    const json = JSON.parse(await res.text());
+    return {
+      url,
+      ok: json.status === "success",
+      version: json.version,
+      message: json.message,
+    };
+  } catch (err: any) {
+    return { url, ok: false, message: err.message || "Gagal terhubung." };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Mock executor (mencerminkan perilaku Apps Script)
+// ---------------------------------------------------------------------------
 
 function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
   const db = loadMockDB();
   const action = req.action;
 
+  const cleanEmail = String(req.email || "")
+    .trim()
+    .toLowerCase();
+  const cleanPin = String(req.pin || "").trim();
+  const user = db.users.find(
+    (u) => u.email.toLowerCase() === cleanEmail && u.pin === cleanPin,
+  );
+
   if (action === "login") {
-    const cleanEmail = String(req.email || "")
-      .trim()
-      .toLowerCase();
-    const cleanPin = String(req.pin || "").trim();
-    const user = db.users.find(
-      (u) => u.email.toLowerCase() === cleanEmail && u.pin === cleanPin,
-    );
     if (!user) {
       return { status: "error", message: "Email atau PIN salah." };
     }
@@ -237,14 +302,6 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
     return { status: "success", user: safeUser };
   }
 
-  // Auth check for non-login actions
-  const cleanEmail = String(req.email || "")
-    .trim()
-    .toLowerCase();
-  const cleanPin = String(req.pin || "").trim();
-  const user = db.users.find(
-    (u) => u.email.toLowerCase() === cleanEmail && u.pin === cleanPin,
-  );
   if (!user) {
     return {
       status: "error",
@@ -308,6 +365,8 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
       };
       return { status: "success", data: data as unknown as T };
     }
+
+    return { status: "error", message: "Role tidak valid." };
   }
 
   if (action === "saveWeeklyPlan") {
@@ -346,33 +405,33 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
       target.Status = "Menunggu";
       saveMockDB(db);
       return { status: "success", message: "Weekly Plan berhasil diperbarui." };
-    } else {
-      const dup = db.weeklyPlans.find(
-        (w) =>
-          w.User_ID === user.userId &&
-          w.Minggu_Ke === String(payload.mingguKe).trim(),
-      );
-      if (dup) {
-        return {
-          status: "error",
-          message: `Weekly Plan untuk ${payload.mingguKe} sudah ada. Silakan edit data yang tersedia.`,
-        };
-      }
-      const newPlan: WeeklyPlan = {
-        Plan_ID: "WP-" + Date.now().toString().slice(-8),
-        Tanggal_Input: getTodayStr(),
-        Minggu_Ke: String(payload.mingguKe).trim(),
-        User_ID: user.userId,
-        Nama_Peserta: user.nama,
-        Mentor_ID: user.mentorId || "",
-        Target_Mingguan: String(payload.targetMingguan).trim(),
-        Status: "Menunggu",
-        Catatan_Mentor: "",
-      };
-      db.weeklyPlans.push(newPlan);
-      saveMockDB(db);
-      return { status: "success", message: "Weekly Plan berhasil disimpan." };
     }
+
+    const dup = db.weeklyPlans.find(
+      (w) =>
+        w.User_ID === user.userId &&
+        w.Minggu_Ke === String(payload.mingguKe).trim(),
+    );
+    if (dup) {
+      return {
+        status: "error",
+        message: `Weekly Plan untuk ${payload.mingguKe} sudah ada. Silakan edit data yang tersedia.`,
+      };
+    }
+    const newPlan: WeeklyPlan = {
+      Plan_ID: "WP-" + Date.now().toString().slice(-8),
+      Tanggal_Input: getTodayStr(),
+      Minggu_Ke: String(payload.mingguKe).trim(),
+      User_ID: user.userId,
+      Nama_Peserta: user.nama,
+      Mentor_ID: user.mentorId || "",
+      Target_Mingguan: String(payload.targetMingguan).trim(),
+      Status: "Menunggu",
+      Catatan_Mentor: "",
+    };
+    db.weeklyPlans.push(newPlan);
+    saveMockDB(db);
+    return { status: "success", message: "Weekly Plan berhasil disimpan." };
   }
 
   if (action === "saveDailyActivity") {
@@ -416,24 +475,24 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
         status: "success",
         message: "Daily Activity berhasil diperbarui.",
       };
-    } else {
-      const newAct: DailyActivity = {
-        Log_ID: "DA-" + Date.now().toString().slice(-8),
-        Tanggal: String(payload.tanggal).trim() || getTodayStr(),
-        User_ID: user.userId,
-        Nama_Peserta: user.nama,
-        Mentor_ID: user.mentorId || "",
-        Kategori: String(payload.kategori).trim(),
-        Deskripsi_Aktivitas: String(payload.deskripsi).trim(),
-        Output_Link: String(payload.outputLink || "").trim(),
-        Kendala: String(payload.kendala || "").trim(),
-        Status: "Menunggu",
-        Catatan_Mentor: "",
-      };
-      db.dailyActivities.push(newAct);
-      saveMockDB(db);
-      return { status: "success", message: "Daily Activity berhasil dicatat." };
     }
+
+    const newAct: DailyActivity = {
+      Log_ID: "DA-" + Date.now().toString().slice(-8),
+      Tanggal: String(payload.tanggal).trim() || getTodayStr(),
+      User_ID: user.userId,
+      Nama_Peserta: user.nama,
+      Mentor_ID: user.mentorId || "",
+      Kategori: String(payload.kategori).trim(),
+      Deskripsi_Aktivitas: String(payload.deskripsi).trim(),
+      Output_Link: String(payload.outputLink || "").trim(),
+      Kendala: String(payload.kendala || "").trim(),
+      Status: "Menunggu",
+      Catatan_Mentor: "",
+    };
+    db.dailyActivities.push(newAct);
+    saveMockDB(db);
+    return { status: "success", message: "Daily Activity berhasil dicatat." };
   }
 
   if (action === "reviewItem") {
@@ -448,116 +507,107 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
       return { status: "error", message: "Payload review tidak valid." };
     }
 
-    if (payload.type === "weekly") {
-      const target = db.weeklyPlans.find((w) => w.Plan_ID === payload.id);
-      if (!target) return { status: "error", message: "Item tidak ditemukan." };
-      if (target.Mentor_ID !== user.userId)
-        return {
-          status: "error",
-          message: "Anda bukan mentor dari peserta ini.",
-        };
+    const target =
+      payload.type === "weekly"
+        ? db.weeklyPlans.find((w) => w.Plan_ID === payload.id)
+        : db.dailyActivities.find((d) => d.Log_ID === payload.id);
 
-      target.Status = payload.status;
-      target.Catatan_Mentor = String(payload.catatan || "").trim();
-      saveMockDB(db);
+    if (!target) return { status: "error", message: "Item tidak ditemukan." };
+    if (target.Mentor_ID !== user.userId)
       return {
-        status: "success",
-        message: `Status berhasil diubah menjadi ${payload.status}.`,
+        status: "error",
+        message: "Anda bukan mentor dari peserta ini.",
       };
-    } else {
-      const target = db.dailyActivities.find((d) => d.Log_ID === payload.id);
-      if (!target) return { status: "error", message: "Item tidak ditemukan." };
-      if (target.Mentor_ID !== user.userId)
-        return {
-          status: "error",
-          message: "Anda bukan mentor dari peserta ini.",
-        };
 
-      target.Status = payload.status;
-      target.Catatan_Mentor = String(payload.catatan || "").trim();
-      saveMockDB(db);
-      return {
-        status: "success",
-        message: `Status berhasil diubah menjadi ${payload.status}.`,
-      };
-    }
+    target.Status = payload.status;
+    target.Catatan_Mentor = String(payload.catatan || "").trim();
+    saveMockDB(db);
+    return {
+      status: "success",
+      message: `Status berhasil diubah menjadi ${payload.status}.`,
+    };
   }
 
   if (action === "deleteItem") {
-    if (user.role !== "Peserta") {
-      return {
-        status: "error",
-        message: "Hanya Peserta yang dapat menghapus data.",
-      };
-    }
     const payload = req.data || {};
-    if (!payload.id || !payload.type) {
+    if (!payload.id || !["weekly", "daily"].includes(payload.type)) {
       return { status: "error", message: "Payload hapus tidak valid." };
     }
-
-    if (payload.type === "weekly") {
-      const idx = db.weeklyPlans.findIndex((w) => w.Plan_ID === payload.id);
-      if (idx === -1)
-        return { status: "error", message: "Item tidak ditemukan." };
-      if (db.weeklyPlans[idx].User_ID !== user.userId)
-        return { status: "error", message: "Akses ditolak." };
-      if (db.weeklyPlans[idx].Status !== "Menunggu") {
-        return {
-          status: "error",
-          message: "Hanya item dengan status Menunggu yang dapat dihapus.",
-        };
-      }
-      db.weeklyPlans.splice(idx, 1);
-      saveMockDB(db);
+    if (user.role !== "Peserta" && user.role !== "HR") {
       return {
-        status: "success",
-        message: "Rencana mingguan berhasil dihapus.",
-      };
-    } else {
-      const idx = db.dailyActivities.findIndex((d) => d.Log_ID === payload.id);
-      if (idx === -1)
-        return { status: "error", message: "Item tidak ditemukan." };
-      if (db.dailyActivities[idx].User_ID !== user.userId)
-        return { status: "error", message: "Akses ditolak." };
-      if (db.dailyActivities[idx].Status !== "Menunggu") {
-        return {
-          status: "error",
-          message: "Hanya item dengan status Menunggu yang dapat dihapus.",
-        };
-      }
-      db.dailyActivities.splice(idx, 1);
-      saveMockDB(db);
-      return {
-        status: "success",
-        message: "Aktivitas harian berhasil dihapus.",
+        status: "error",
+        message: "Role tidak memiliki izin menghapus item.",
       };
     }
+
+    const isWeekly = payload.type === "weekly";
+    const list: Array<WeeklyPlan | DailyActivity> = isWeekly
+      ? db.weeklyPlans
+      : db.dailyActivities;
+    const idx = list.findIndex((item) =>
+      isWeekly
+        ? (item as WeeklyPlan).Plan_ID === payload.id
+        : (item as DailyActivity).Log_ID === payload.id,
+    );
+    if (idx === -1)
+      return { status: "error", message: "Item tidak ditemukan." };
+
+    const item = list[idx];
+    if (user.role === "Peserta") {
+      if (item.User_ID !== user.userId)
+        return { status: "error", message: "Akses ditolak." };
+      if (item.Status === "Disetujui") {
+        return {
+          status: "error",
+          message: "Item yang sudah disetujui tidak bisa dihapus.",
+        };
+      }
+    }
+
+    list.splice(idx, 1);
+    saveMockDB(db);
+    return { status: "success", message: "Data berhasil dihapus." };
   }
 
   if (action === "resetPin") {
     if (user.role !== "HR") {
-      return { status: "error", message: "Hanya HR yang dapat mereset PIN pengguna." };
+      return {
+        status: "error",
+        message: "Hanya HR yang dapat mereset PIN pengguna.",
+      };
     }
     const payload = req.data || {};
     if (!payload.userId && !payload.email) {
-      return { status: "error", message: "Target userId atau email wajib diisi." };
+      return {
+        status: "error",
+        message: "Target userId atau email wajib diisi.",
+      };
     }
     const nextPin = String(payload.newPin || "1234").trim();
     if (!/^\d{4,8}$/.test(nextPin)) {
-      return { status: "error", message: "PIN harus terdiri dari 4 sampai 8 digit angka." };
+      return {
+        status: "error",
+        message: "PIN harus terdiri dari 4 sampai 8 digit angka.",
+      };
     }
     const target = db.users.find(
       (u) =>
         (payload.userId && u.userId === String(payload.userId).trim()) ||
-        (payload.email && u.email.toLowerCase() === String(payload.email).trim().toLowerCase())
+        (payload.email &&
+          u.email.toLowerCase() === String(payload.email).trim().toLowerCase()),
     );
-    if (!target) return { status: "error", message: "Pengguna tidak ditemukan." };
+    if (!target)
+      return { status: "error", message: "Pengguna tidak ditemukan." };
     target.pin = nextPin;
     saveMockDB(db);
     return {
       status: "success",
       message: "PIN berhasil direset.",
-      data: { userId: target.userId, email: target.email, resetPin: nextPin } as unknown as T,
+      data: {
+        userId: target.userId,
+        email: target.email,
+        resetPin: nextPin,
+      } as unknown as T,
     };
   }
 
@@ -569,10 +619,14 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
     const currentPin = String(payload.currentPin).trim();
     const newPin = String(payload.newPin).trim();
     if (!/^\d{4,8}$/.test(newPin)) {
-      return { status: "error", message: "PIN baru harus terdiri dari 4 sampai 8 digit angka." };
+      return {
+        status: "error",
+        message: "PIN baru harus terdiri dari 4 sampai 8 digit angka.",
+      };
     }
     const target = db.users.find((u) => u.userId === user.userId);
-    if (!target) return { status: "error", message: "Akun pengguna tidak ditemukan." };
+    if (!target)
+      return { status: "error", message: "Akun pengguna tidak ditemukan." };
     if (target.pin !== currentPin) {
       return { status: "error", message: "PIN lama tidak sesuai." };
     }
@@ -580,12 +634,17 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
     saveMockDB(db);
     return {
       status: "success",
-      message: "PIN berhasil diubah. Silakan gunakan PIN baru saat login berikutnya.",
+      message:
+        "PIN berhasil diubah. Silakan gunakan PIN baru saat login berikutnya.",
     };
   }
 
   return { status: "error", message: "Action tidak dikenali: " + action };
 }
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
 export const api = {
   login: (email: string, pin: string) =>
