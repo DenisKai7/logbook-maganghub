@@ -96,25 +96,25 @@ export const ChangePinModal: React.FC<Props> = ({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+          <div className="p-3 rounded-xl bg-rose-50 dark:bg-[#341b1d] border border-rose-200 dark:border-[#5c2427] text-xs text-rose-800 dark:text-[#f48771] flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 dark:text-[#f48771] shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {success && (
-          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
-            <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+          <div className="p-3 rounded-xl bg-emerald-50 dark:bg-[#1b3424] border border-emerald-200 dark:border-[#2e6040] text-xs text-emerald-800 dark:text-[#4ec9b0] flex items-center gap-2">
+            <Check className="w-4 h-4 text-emerald-600 dark:text-[#4ec9b0] shrink-0" />
             <span>{success}</span>
           </div>
         )}
 
         <div>
-          <label className="block text-xs font-semibold text-stone-700 mb-1">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">
             PIN Lama Saat Ini
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-[#858585]">
               <KeyRound className="w-4 h-4" />
             </div>
             <input
@@ -124,20 +124,20 @@ export const ChangePinModal: React.FC<Props> = ({
               placeholder="••••••"
               value={currentPin}
               onChange={(e) => setCurrentPin(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-stone-900 bg-stone-50/40 tracking-widest font-mono"
+              className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/60 dark:bg-[#1e1e1e] text-slate-900 dark:text-white tracking-widest font-mono transition-colors"
             />
           </div>
         </div>
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-xs font-semibold text-stone-700">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4]">
               PIN Baru
             </label>
-            <span className="text-[11px] text-stone-400">4-8 digit angka</span>
+            <span className="text-[11px] text-slate-400 dark:text-[#858585]">4-8 digit angka</span>
           </div>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-[#858585]">
               <KeyRound className="w-4 h-4" />
             </div>
             <input
@@ -147,17 +147,17 @@ export const ChangePinModal: React.FC<Props> = ({
               placeholder="••••••"
               value={newPin}
               onChange={(e) => setNewPin(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-stone-900 bg-stone-50/40 tracking-widest font-mono"
+              className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/60 dark:bg-[#1e1e1e] text-slate-900 dark:text-white tracking-widest font-mono transition-colors"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-stone-700 mb-1">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">
             Ulangi PIN Baru
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-[#858585]">
               <KeyRound className="w-4 h-4" />
             </div>
             <input
@@ -167,7 +167,7 @@ export const ChangePinModal: React.FC<Props> = ({
               placeholder="••••••"
               value={confirmPin}
               onChange={(e) => setConfirmPin(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-stone-900 bg-stone-50/40 tracking-widest font-mono"
+              className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/60 dark:bg-[#1e1e1e] text-slate-900 dark:text-white tracking-widest font-mono transition-colors"
             />
           </div>
         </div>
@@ -176,14 +176,14 @@ export const ChangePinModal: React.FC<Props> = ({
           <button
             type="button"
             onClick={handleClose}
-            className="px-3 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 cursor-pointer"
+            className="px-3 py-2 text-xs font-medium text-slate-600 dark:text-[#858585] hover:text-slate-900 dark:hover:text-white cursor-pointer transition-colors"
           >
             Batal
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
+            className="px-4 py-2 bg-[#0b4e8c] hover:bg-[#083b6b] dark:bg-[#0e639c] dark:hover:bg-[#1177bb] disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
           >
             {loading ? 'Menyimpan...' : 'Simpan PIN Baru'}
           </button>

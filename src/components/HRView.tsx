@@ -341,18 +341,20 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
   return (
     <div className="space-y-6">
       {/* Editorial Header Section */}
-      <section className="bg-white rounded-3xl border border-stone-200/80 p-6 sm:p-8 shadow-xs">
+      <section className="bg-white dark:bg-[#252526] rounded-3xl border border-slate-200/90 dark:border-[#2d2d2d] p-6 sm:p-8 shadow-xs transition-colors duration-200">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
-            <div className="flex items-center gap-2.5 text-stone-500 text-xs font-semibold uppercase tracking-wider">
+            <div className="flex items-center gap-2.5 text-slate-500 dark:text-[#858585] text-xs font-semibold uppercase tracking-wider">
+              <span>PT. Shelter Indonesia Gemilang</span>
+              <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-[#383838]" />
               <span>Admin HR &amp; Monitoring</span>
-              <span className="w-1 h-1 rounded-full bg-stone-300" />
+              <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-[#383838]" />
               <span>Hari Ini: {data.today}</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-semibold text-stone-900 tracking-tight mt-1.5">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight mt-1.5">
               Pusat Data &amp; Statistik Magang
             </h1>
-            <p className="text-stone-500 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
+            <p className="text-slate-500 dark:text-[#858585] text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
               Pantau kepatuhan pengisian logbook harian, status peninjauan mentor, sebaran divisi, dan ekspor data operasional program magang.
             </p>
           </div>
@@ -361,66 +363,66 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
           <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-center">
             <button
               onClick={exportDailyCsv}
-              className="inline-flex items-center gap-2 px-3.5 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-[#0b4e8c] hover:bg-[#083b6b] dark:bg-[#0e639c] dark:hover:bg-[#1177bb] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               Unduh CSV Logbook
             </button>
             <button
               onClick={exportWeeklyCsv}
-              className="inline-flex items-center gap-2 px-3.5 py-2 bg-stone-100 hover:bg-stone-200/80 text-stone-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200/80 dark:bg-[#1e1e1e] dark:hover:bg-[#2d2d2d] text-slate-700 dark:text-[#cccccc] text-xs font-semibold rounded-xl transition-colors cursor-pointer border border-slate-200/70 dark:border-[#383838]"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-stone-500" />
+              <FileSpreadsheet className="w-3.5 h-3.5 text-[#0b4e8c] dark:text-[#9cdcfe]" />
               CSV Mingguan
             </button>
           </div>
         </div>
 
         {/* Executive KPI Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 pt-6 mt-6 border-t border-stone-100">
-          <div className="p-4 rounded-2xl bg-stone-50/70 border border-stone-200/60 transition-colors">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 pt-6 mt-6 border-t border-slate-100 dark:border-[#2d2d2d]">
+          <div className="p-4 rounded-2xl bg-blue-50/50 dark:bg-[#1e2733] border border-blue-200/60 dark:border-[#264f78] transition-colors">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">Peserta Magang</span>
-              <GraduationCap className="w-4 h-4 text-sky-600" />
+              <span className="text-[11px] font-semibold text-[#0b4e8c] dark:text-[#9cdcfe] uppercase tracking-wider">Peserta Magang</span>
+              <GraduationCap className="w-4 h-4 text-[#0b4e8c] dark:text-[#9cdcfe]" />
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-stone-900 font-mono">{interns.length}</span>
-              <span className="text-xs text-stone-500">orang ({divisions.length} divisi)</span>
+              <span className="text-2xl font-bold text-slate-900 dark:text-white font-mono">{interns.length}</span>
+              <span className="text-xs text-slate-500 dark:text-[#858585]">orang ({divisions.length} divisi)</span>
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-stone-50/70 border border-stone-200/60 transition-colors">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200/60 dark:border-[#2d2d2d] transition-colors">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">Mentor Pembimbing</span>
-              <UserCheck className="w-4 h-4 text-amber-600" />
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-[#858585] uppercase tracking-wider">Mentor Pembimbing</span>
+              <UserCheck className="w-4 h-4 text-amber-600 dark:text-[#dcdcaa]" />
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-stone-900 font-mono">{mentors.length}</span>
-              <span className="text-xs text-stone-500">
+              <span className="text-2xl font-bold text-slate-900 dark:text-white font-mono">{mentors.length}</span>
+              <span className="text-xs text-slate-500 dark:text-[#858585]">
                 aktif ({mentors.length > 0 ? (interns.length / mentors.length).toFixed(1) : 0} ratio)
               </span>
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-stone-50/70 border border-stone-200/60 transition-colors">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200/60 dark:border-[#2d2d2d] transition-colors">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">Total Logbook</span>
-              <Activity className="w-4 h-4 text-stone-600" />
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-[#858585] uppercase tracking-wider">Total Logbook</span>
+              <Activity className="w-4 h-4 text-[#0b4e8c] dark:text-[#9cdcfe]" />
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-stone-900 font-mono">{totalDaily}</span>
-              <span className="text-xs text-stone-500">entri ({approvedDaily} disetujui)</span>
+              <span className="text-2xl font-bold text-slate-900 dark:text-white font-mono">{totalDaily}</span>
+              <span className="text-xs text-slate-500 dark:text-[#858585]">entri ({approvedDaily} disetujui)</span>
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-stone-50/70 border border-stone-200/60 transition-colors">
+          <div className="p-4 rounded-2xl bg-emerald-50/50 dark:bg-[#1b3424] border border-emerald-200/60 dark:border-[#2e6040] transition-colors">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">Approval Rate</span>
-              <TrendingUp className="w-4 h-4 text-emerald-600" />
+              <span className="text-[11px] font-semibold text-emerald-800 dark:text-[#4ec9b0] uppercase tracking-wider">Approval Rate</span>
+              <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-[#4ec9b0]" />
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-emerald-700 font-mono">{approvalRate}%</span>
-              <span className="text-xs text-amber-600 font-medium">
+              <span className="text-2xl font-bold text-emerald-800 dark:text-[#4ec9b0] font-mono">{approvalRate}%</span>
+              <span className="text-xs text-amber-600 dark:text-[#dcdcaa] font-medium">
                 {pendingDaily} menunggu
               </span>
             </div>
@@ -429,14 +431,14 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
       </section>
 
       {/* Main Tab Navigation */}
-      <div className="flex items-center justify-between border-b border-stone-200">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#2d2d2d]">
         <nav className="flex space-x-6 sm:space-x-8">
           <button
             onClick={() => setActiveTab('overview')}
             className={`pb-3 text-sm font-semibold transition-colors relative cursor-pointer ${
               activeTab === 'overview'
-                ? 'text-stone-900 border-b-2 border-stone-900'
-                : 'text-stone-500 hover:text-stone-800'
+                ? 'text-[#0b4e8c] dark:text-[#3794ff] border-b-2 border-[#0b4e8c] dark:border-[#3794ff]'
+                : 'text-slate-500 dark:text-[#858585] hover:text-slate-800 dark:hover:text-[#cccccc]'
             }`}
           >
             Statistik &amp; Analitik
@@ -445,8 +447,8 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
             onClick={() => setActiveTab('daily')}
             className={`pb-3 text-sm font-semibold transition-colors relative cursor-pointer ${
               activeTab === 'daily'
-                ? 'text-stone-900 border-b-2 border-stone-900'
-                : 'text-stone-500 hover:text-stone-800'
+                ? 'text-[#0b4e8c] dark:text-[#3794ff] border-b-2 border-[#0b4e8c] dark:border-[#3794ff]'
+                : 'text-slate-500 dark:text-[#858585] hover:text-slate-800 dark:hover:text-[#cccccc]'
             }`}
           >
             Logbook Harian ({data.dailyActivities.length})
@@ -455,8 +457,8 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
             onClick={() => setActiveTab('weekly')}
             className={`pb-3 text-sm font-semibold transition-colors relative cursor-pointer ${
               activeTab === 'weekly'
-                ? 'text-stone-900 border-b-2 border-stone-900'
-                : 'text-stone-500 hover:text-stone-800'
+                ? 'text-[#0b4e8c] dark:text-[#3794ff] border-b-2 border-[#0b4e8c] dark:border-[#3794ff]'
+                : 'text-slate-500 dark:text-[#858585] hover:text-slate-800 dark:hover:text-[#cccccc]'
             }`}
           >
             Target Mingguan ({data.weeklyPlans.length})
@@ -465,8 +467,8 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
             onClick={() => setActiveTab('users')}
             className={`pb-3 text-sm font-semibold transition-colors relative cursor-pointer ${
               activeTab === 'users'
-                ? 'text-stone-900 border-b-2 border-stone-900'
-                : 'text-stone-500 hover:text-stone-800'
+                ? 'text-[#0b4e8c] dark:text-[#3794ff] border-b-2 border-[#0b4e8c] dark:border-[#3794ff]'
+                : 'text-slate-500 dark:text-[#858585] hover:text-slate-800 dark:hover:text-[#cccccc]'
             }`}
           >
             Pengguna &amp; Mentoring ({data.users.length})
@@ -482,80 +484,80 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
           {/* Row 1: Status Distribution Bar & Category Composition */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Status Breakdown Card */}
-            <div className="lg:col-span-2 bg-white rounded-3xl border border-stone-200/80 p-6 shadow-xs">
+            <div className="lg:col-span-2 bg-white dark:bg-[#252526] rounded-3xl border border-slate-200/90 dark:border-[#2d2d2d] p-6 shadow-xs">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-stone-900 tracking-tight">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white tracking-tight">
                     Distribusi Status Peninjauan Logbook
                   </h3>
-                  <p className="text-xs text-stone-500 mt-0.5">Proporsi verifikasi aktivitas peserta oleh mentor</p>
+                  <p className="text-xs text-slate-500 dark:text-[#858585] mt-0.5">Proporsi verifikasi aktivitas peserta oleh mentor</p>
                 </div>
-                <span className="text-xs font-mono font-semibold text-stone-600 bg-stone-100 px-2 py-0.5 rounded">
+                <span className="text-xs font-mono font-semibold text-[#0b4e8c] dark:text-[#9cdcfe] bg-blue-50 dark:bg-[#1e2733] border border-blue-200/60 dark:border-[#264f78] px-2 py-0.5 rounded">
                   {totalDaily} Total Entri
                 </span>
               </div>
 
               {/* Multi-segment distribution bar */}
-              <div className="h-4 w-full bg-stone-100 rounded-full overflow-hidden flex shadow-inner">
+              <div className="h-4 w-full bg-slate-100 dark:bg-[#1e1e1e] rounded-full overflow-hidden flex shadow-inner">
                 {totalDaily > 0 ? (
                   <>
                     <div
                       style={{ width: `${(approvedDaily / totalDaily) * 100}%` }}
-                      className="bg-emerald-500 transition-all duration-500"
+                      className="bg-emerald-500 dark:bg-[#4ec9b0] transition-all duration-500"
                       title={`Disetujui: ${approvedDaily}`}
                     />
                     <div
                       style={{ width: `${(pendingDaily / totalDaily) * 100}%` }}
-                      className="bg-stone-400 transition-all duration-500"
+                      className="bg-[#0b4e8c] dark:bg-[#0e639c] transition-all duration-500"
                       title={`Menunggu: ${pendingDaily}`}
                     />
                     <div
                       style={{ width: `${(revisionDaily / totalDaily) * 100}%` }}
-                      className="bg-amber-500 transition-all duration-500"
+                      className="bg-amber-500 dark:bg-[#cca700] transition-all duration-500"
                       title={`Revisi: ${revisionDaily}`}
                     />
                   </>
                 ) : (
-                  <div className="w-full bg-stone-200" />
+                  <div className="w-full bg-slate-200 dark:bg-[#2d2d2d]" />
                 )}
               </div>
 
               {/* Status breakdown legend boxes */}
               <div className="grid grid-cols-3 gap-3 mt-5">
-                <div className="p-3 rounded-xl bg-emerald-50/60 border border-emerald-200/50">
-                  <div className="flex items-center gap-1.5 text-emerald-800 text-xs font-semibold">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-[#1b3424] border border-emerald-200/50 dark:border-[#2e6040]">
+                  <div className="flex items-center gap-1.5 text-emerald-800 dark:text-[#4ec9b0] text-xs font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-[#4ec9b0]" />
                     <span>Disetujui</span>
                   </div>
                   <div className="mt-1 flex items-baseline gap-1">
-                    <span className="text-lg font-bold text-emerald-950 font-mono">{approvedDaily}</span>
-                    <span className="text-[11px] text-emerald-700">
+                    <span className="text-lg font-bold text-emerald-950 dark:text-white font-mono">{approvedDaily}</span>
+                    <span className="text-[11px] text-emerald-700 dark:text-[#4ec9b0]/80">
                       ({totalDaily > 0 ? Math.round((approvedDaily / totalDaily) * 100) : 0}%)
                     </span>
                   </div>
                 </div>
 
-                <div className="p-3 rounded-xl bg-stone-50 border border-stone-200/60">
-                  <div className="flex items-center gap-1.5 text-stone-700 text-xs font-semibold">
-                    <span className="w-2 h-2 rounded-full bg-stone-400" />
+                <div className="p-3 rounded-xl bg-blue-50/60 dark:bg-[#1e2733] border border-blue-200/60 dark:border-[#264f78]">
+                  <div className="flex items-center gap-1.5 text-[#0b4e8c] dark:text-[#9cdcfe] text-xs font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-[#0b4e8c] dark:bg-[#3794ff]" />
                     <span>Menunggu Review</span>
                   </div>
                   <div className="mt-1 flex items-baseline gap-1">
-                    <span className="text-lg font-bold text-stone-900 font-mono">{pendingDaily}</span>
-                    <span className="text-[11px] text-stone-500">
+                    <span className="text-lg font-bold text-slate-900 dark:text-white font-mono">{pendingDaily}</span>
+                    <span className="text-[11px] text-slate-500 dark:text-[#858585]">
                       ({totalDaily > 0 ? Math.round((pendingDaily / totalDaily) * 100) : 0}%)
                     </span>
                   </div>
                 </div>
 
-                <div className="p-3 rounded-xl bg-amber-50/60 border border-amber-200/50">
-                  <div className="flex items-center gap-1.5 text-amber-800 text-xs font-semibold">
-                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                <div className="p-3 rounded-xl bg-amber-50/60 dark:bg-[#342c15] border border-amber-200/50 dark:border-[#5a4d22]">
+                  <div className="flex items-center gap-1.5 text-amber-800 dark:text-[#dcdcaa] text-xs font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 dark:bg-[#cca700]" />
                     <span>Perlu Revisi</span>
                   </div>
                   <div className="mt-1 flex items-baseline gap-1">
-                    <span className="text-lg font-bold text-amber-950 font-mono">{revisionDaily}</span>
-                    <span className="text-[11px] text-amber-700">
+                    <span className="text-lg font-bold text-amber-950 dark:text-white font-mono">{revisionDaily}</span>
+                    <span className="text-[11px] text-amber-700 dark:text-[#dcdcaa]/80">
                       ({totalDaily > 0 ? Math.round((revisionDaily / totalDaily) * 100) : 0}%)
                     </span>
                   </div>
@@ -564,12 +566,12 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
             </div>
 
             {/* Category Composition Card */}
-            <div className="bg-white rounded-3xl border border-stone-200/80 p-6 shadow-xs flex flex-col justify-between">
+            <div className="bg-white dark:bg-[#252526] rounded-3xl border border-slate-200/90 dark:border-[#2d2d2d] p-6 shadow-xs flex flex-col justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-stone-900 tracking-tight">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white tracking-tight">
                   Komposisi Kategori Tugas
                 </h3>
-                <p className="text-xs text-stone-500 mt-0.5">Aktivitas paling sering dicatat peserta</p>
+                <p className="text-xs text-slate-500 dark:text-[#858585] mt-0.5">Aktivitas paling sering dicatat peserta</p>
 
                 <div className="space-y-3 mt-4">
                   {categoryStats.slice(0, 4).map(([cat, count]) => {
@@ -577,13 +579,13 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                     return (
                       <div key={cat} className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="font-medium text-stone-700 truncate max-w-[170px]">{cat}</span>
-                          <span className="font-mono text-stone-500 font-medium">{count} ({pct}%)</span>
+                          <span className="font-medium text-slate-700 dark:text-[#cccccc] truncate max-w-[170px]">{cat}</span>
+                          <span className="font-mono text-slate-500 dark:text-[#858585] font-medium">{count} ({pct}%)</span>
                         </div>
-                        <div className="h-1.5 w-full bg-stone-100 rounded-full overflow-hidden">
+                        <div className="h-1.5 w-full bg-slate-100 dark:bg-[#1e1e1e] rounded-full overflow-hidden">
                           <div
                             style={{ width: `${pct}%` }}
-                            className="h-full bg-stone-800 rounded-full"
+                            className="h-full bg-[#0b4e8c] dark:bg-[#0e639c] rounded-full"
                           />
                         </div>
                       </div>
@@ -593,7 +595,7 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
               </div>
 
               {categoryStats.length === 0 && (
-                <p className="text-xs text-stone-400 py-6 text-center">Belum ada data aktivitas.</p>
+                <p className="text-xs text-slate-400 dark:text-[#858585] py-6 text-center">Belum ada data aktivitas.</p>
               )}
             </div>
           </div>
@@ -601,35 +603,35 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
           {/* Row 2: Division Comparison & Mentorship Workload */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Division Performance Card */}
-            <div className="bg-white rounded-3xl border border-stone-200/80 p-6 shadow-xs">
+            <div className="bg-white dark:bg-[#252526] rounded-3xl border border-slate-200/90 dark:border-[#2d2d2d] p-6 shadow-xs">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-stone-900 tracking-tight">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white tracking-tight">
                     Kinerja Magang Berdasarkan Divisi
                   </h3>
-                  <p className="text-xs text-stone-500 mt-0.5">Jumlah peserta &amp; pemenuhan verifikasi logbook</p>
+                  <p className="text-xs text-slate-500 dark:text-[#858585] mt-0.5">Jumlah peserta &amp; pemenuhan verifikasi logbook</p>
                 </div>
-                <Building2 className="w-4 h-4 text-stone-400" />
+                <Building2 className="w-4 h-4 text-[#0b4e8c] dark:text-[#9cdcfe]" />
               </div>
 
               <div className="space-y-3.5">
                 {divisionStats.map(item => (
                   <div
                     key={item.division}
-                    className="p-3.5 rounded-2xl bg-stone-50/60 border border-stone-200/60 flex items-center justify-between gap-4"
+                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200/60 dark:border-[#2d2d2d] flex items-center justify-between gap-4"
                   >
                     <div>
-                      <strong className="text-xs font-semibold text-stone-900 block">{item.division}</strong>
-                      <span className="text-[11px] text-stone-500">
+                      <strong className="text-xs font-semibold text-slate-900 dark:text-white block">{item.division}</strong>
+                      <span className="text-[11px] text-slate-500 dark:text-[#858585]">
                         {item.internCount} Peserta • {item.logCount} Total Log
                       </span>
                     </div>
 
                     <div className="text-right">
-                      <span className="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded">
+                      <span className="text-xs font-mono font-bold text-emerald-800 dark:text-[#4ec9b0] bg-emerald-50 dark:bg-[#1b3424] border border-emerald-200/60 dark:border-[#2e6040] px-2 py-0.5 rounded">
                         {item.rate}% Approved
                       </span>
-                      <span className="text-[10px] text-stone-400 block mt-0.5">
+                      <span className="text-[10px] text-slate-400 dark:text-[#858585] block mt-0.5">
                         {item.approvedCount} dari {item.logCount}
                       </span>
                     </div>
@@ -639,46 +641,46 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
             </div>
 
             {/* Mentorship Workload Card */}
-            <div className="bg-white rounded-3xl border border-stone-200/80 p-6 shadow-xs">
+            <div className="bg-white dark:bg-[#252526] rounded-3xl border border-slate-200/90 dark:border-[#2d2d2d] p-6 shadow-xs">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-stone-900 tracking-tight">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white tracking-tight">
                     Kesehatan Mentoring &amp; Beban Kerja
                   </h3>
-                  <p className="text-xs text-stone-500 mt-0.5">Jumlah bimbingan dan antrean review per mentor</p>
+                  <p className="text-xs text-slate-500 dark:text-[#858585] mt-0.5">Jumlah bimbingan dan antrean review per mentor</p>
                 </div>
-                <UserCheck className="w-4 h-4 text-stone-400" />
+                <UserCheck className="w-4 h-4 text-[#0b4e8c] dark:text-[#9cdcfe]" />
               </div>
 
               <div className="space-y-3.5">
                 {mentorWorkload.map(item => (
                   <div
                     key={item.mentor.userId}
-                    className="p-3.5 rounded-2xl bg-stone-50/60 border border-stone-200/60 flex items-center justify-between gap-4"
+                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200/60 dark:border-[#2d2d2d] flex items-center justify-between gap-4"
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <strong className="text-xs font-semibold text-stone-900">{item.mentor.nama}</strong>
-                        <span className="text-[10px] font-mono text-stone-400">({item.mentor.divisi})</span>
+                        <strong className="text-xs font-semibold text-slate-900 dark:text-white">{item.mentor.nama}</strong>
+                        <span className="text-[10px] font-mono text-slate-400 dark:text-[#858585]">({item.mentor.divisi})</span>
                       </div>
-                      <p className="text-[11px] text-stone-500 mt-0.5">
+                      <p className="text-[11px] text-slate-500 dark:text-[#858585] mt-0.5">
                         Membimbing: {item.mentees.length > 0 ? item.mentees.map(m => m.nama).join(', ') : 'Belum ada'}
                       </p>
                     </div>
 
                     <div className="text-right shrink-0">
                       {item.pendingReviewCount > 0 ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-mono font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+                        <span className="inline-flex items-center gap-1 text-xs font-mono font-semibold text-amber-800 dark:text-[#dcdcaa] bg-amber-50 dark:bg-[#342c15] border border-amber-200 dark:border-[#5a4d22] px-2 py-0.5 rounded">
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                           {item.pendingReviewCount} Butuh Review
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs font-mono font-medium text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        <span className="inline-flex items-center gap-1 text-xs font-mono font-medium text-emerald-800 dark:text-[#4ec9b0] bg-emerald-50 dark:bg-[#1b3424] border border-emerald-200 dark:border-[#2e6040] px-2 py-0.5 rounded">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-[#4ec9b0]" />
                           Up to date
                         </span>
                       )}
-                      <span className="text-[10px] text-stone-400 block mt-0.5">
+                      <span className="text-[10px] text-slate-400 dark:text-[#858585] block mt-0.5">
                         {item.totalLogs} logbook bimbingan
                       </span>
                     </div>
@@ -689,20 +691,20 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
           </div>
 
           {/* Row 3: Intern Activity Compliance Roster */}
-          <div className="bg-white rounded-3xl border border-stone-200/80 p-6 shadow-xs">
+          <div className="bg-white dark:bg-[#252526] rounded-3xl border border-slate-200/90 dark:border-[#2d2d2d] p-6 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
               <div>
-                <h3 className="text-sm font-semibold text-stone-900 tracking-tight">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white tracking-tight">
                   Status Kepatuhan Pengisian Peserta Magang
                 </h3>
-                <p className="text-xs text-stone-500 mt-0.5">Ringkasan kedisiplinan pencatatan log harian &amp; target mingguan</p>
+                <p className="text-xs text-slate-500 dark:text-[#858585] mt-0.5">Ringkasan kedisiplinan pencatatan log harian &amp; target mingguan</p>
               </div>
-              <span className="text-xs text-stone-400 font-mono">Total {internActivityRoster.length} Peserta Aktif</span>
+              <span className="text-xs text-slate-400 dark:text-[#858585] font-mono">Total {internActivityRoster.length} Peserta Aktif</span>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-stone-50/80 border-y border-stone-200/60 text-stone-500 uppercase tracking-wider font-semibold text-[10px]">
+                <thead className="bg-slate-50 dark:bg-[#181818] border-y border-slate-200/60 dark:border-[#2d2d2d] text-slate-500 dark:text-[#858585] uppercase tracking-wider font-semibold text-[10px]">
                   <tr>
                     <th className="py-2.5 px-3">Nama Peserta</th>
                     <th className="py-2.5 px-3">Divisi</th>
@@ -713,32 +715,32 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                     <th className="py-2.5 px-3 text-right">Status Kepatuhan</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100 text-stone-700">
+                <tbody className="divide-y divide-slate-100 dark:divide-[#2d2d2d] text-slate-700 dark:text-[#cccccc]">
                   {internActivityRoster.map(item => {
                     const isCompliant = item.logCount > 0;
                     return (
-                      <tr key={item.intern.userId} className="hover:bg-stone-50/60 transition-colors">
-                        <td className="py-3 px-3 font-semibold text-stone-900 whitespace-nowrap">
+                      <tr key={item.intern.userId} className="hover:bg-slate-50/70 dark:hover:bg-[#2a2d2e] transition-colors">
+                        <td className="py-3 px-3 font-semibold text-slate-900 dark:text-white whitespace-nowrap">
                           {item.intern.nama}
                         </td>
-                        <td className="py-3 px-3 whitespace-nowrap text-stone-500">{item.intern.divisi}</td>
-                        <td className="py-3 px-3 whitespace-nowrap text-stone-600">{item.mentorName}</td>
+                        <td className="py-3 px-3 whitespace-nowrap text-slate-500 dark:text-[#858585]">{item.intern.divisi}</td>
+                        <td className="py-3 px-3 whitespace-nowrap text-slate-600 dark:text-[#cccccc]">{item.mentorName}</td>
                         <td className="py-3 px-3 text-center font-mono font-medium">
-                          {item.logCount} <span className="text-stone-400 text-[10px]">({item.approvedLogCount} acc)</span>
+                          {item.logCount} <span className="text-slate-400 dark:text-[#858585] text-[10px]">({item.approvedLogCount} acc)</span>
                         </td>
                         <td className="py-3 px-3 text-center font-mono font-medium">{item.weeklyCount}</td>
-                        <td className="py-3 px-3 font-mono text-[11px] text-stone-500 whitespace-nowrap">
+                        <td className="py-3 px-3 font-mono text-[11px] text-slate-500 dark:text-[#858585] whitespace-nowrap">
                           {item.lastLogDate}
                         </td>
                         <td className="py-3 px-3 text-right whitespace-nowrap">
                           {isCompliant ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-full">
-                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-800 dark:text-[#4ec9b0] bg-emerald-50 dark:bg-[#1b3424] border border-emerald-200/60 dark:border-[#2e6040] px-2 py-0.5 rounded-full">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-[#4ec9b0]" />
                               Aktif Mengisi
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-full">
-                              <AlertCircle className="w-3 h-3 text-amber-600" />
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 dark:text-[#dcdcaa] bg-amber-50 dark:bg-[#342c15] border border-amber-200/60 dark:border-[#5a4d22] px-2 py-0.5 rounded-full">
+                              <AlertCircle className="w-3 h-3 text-amber-600 dark:text-[#cca700]" />
                               Belum Ada Log
                             </span>
                           )}
@@ -759,16 +761,16 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
       {activeTab === 'daily' && (
         <div className="space-y-4">
           {/* Filter Bar */}
-          <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-xs space-y-3">
+          <div className="bg-white dark:bg-[#252526] rounded-2xl border border-slate-200/90 dark:border-[#2d2d2d] p-4 shadow-xs space-y-3">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <div className="relative flex-1">
-                <Search className="w-4 h-4 absolute left-3 top-2.5 text-stone-400 pointer-events-none" />
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400 dark:text-[#858585] pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Cari nama peserta, kata kunci deskripsi aktivitas..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-stone-900 bg-stone-50/40"
+                  className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/50 dark:bg-[#1e1e1e] text-slate-900 dark:text-white"
                 />
               </div>
 
@@ -776,7 +778,7 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                 <select
                   value={selectedDivision}
                   onChange={e => setSelectedDivision(e.target.value)}
-                  className="px-2.5 py-1.5 text-xs rounded-lg border border-stone-200 bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#383838] bg-white dark:bg-[#1e1e1e] text-slate-700 dark:text-[#cccccc] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc]"
                 >
                   <option value="all">Semua Divisi</option>
                   {divisions.map(d => (
@@ -787,7 +789,7 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                 <select
                   value={selectedStatus}
                   onChange={e => setSelectedStatus(e.target.value)}
-                  className="px-2.5 py-1.5 text-xs rounded-lg border border-stone-200 bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#383838] bg-white dark:bg-[#1e1e1e] text-slate-700 dark:text-[#cccccc] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc]"
                 >
                   <option value="all">Semua Status</option>
                   <option value="Menunggu">Menunggu Review</option>
@@ -798,7 +800,7 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                 <select
                   value={selectedCategory}
                   onChange={e => setSelectedCategory(e.target.value)}
-                  className="px-2.5 py-1.5 text-xs rounded-lg border border-stone-200 bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#383838] bg-white dark:bg-[#1e1e1e] text-slate-700 dark:text-[#cccccc] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc]"
                 >
                   <option value="all">Semua Kategori</option>
                   {categoryStats.map(([cat]) => (
@@ -810,10 +812,10 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-3xl border border-stone-200/80 shadow-xs overflow-hidden">
+          <div className="bg-white dark:bg-[#252526] rounded-3xl border border-slate-200/90 dark:border-[#2d2d2d] shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-stone-50/80 border-b border-stone-200 text-stone-500 uppercase tracking-wider font-semibold text-[10px]">
+                <thead className="bg-slate-50 dark:bg-[#181818] border-b border-slate-200 dark:border-[#2d2d2d] text-slate-500 dark:text-[#858585] uppercase tracking-wider font-semibold text-[10px]">
                   <tr>
                     <th className="py-3 px-4">Tanggal</th>
                     <th className="py-3 px-4">Peserta &amp; Divisi</th>
@@ -824,10 +826,10 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                     <th className="py-3 px-4 text-right">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100 text-stone-700">
+                <tbody className="divide-y divide-slate-100 dark:divide-[#2d2d2d] text-slate-700 dark:text-[#cccccc]">
                   {filteredDaily.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-10 text-stone-400">
+                      <td colSpan={7} className="text-center py-10 text-slate-400 dark:text-[#858585]">
                         Tidak ada logbook yang cocok dengan filter pencarian.
                       </td>
                     </tr>
@@ -835,27 +837,27 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                     filteredDaily.map(d => {
                       const u = data.users.find(x => x.userId === d.User_ID);
                       return (
-                        <tr key={d.Log_ID} className="hover:bg-stone-50/60 transition-colors">
-                          <td className="py-3.5 px-4 font-mono text-[11px] text-stone-500 whitespace-nowrap">
+                        <tr key={d.Log_ID} className="hover:bg-slate-50/70 dark:hover:bg-[#2a2d2e] transition-colors">
+                          <td className="py-3.5 px-4 font-mono text-[11px] text-slate-500 dark:text-[#858585] whitespace-nowrap">
                             {d.Tanggal}
                           </td>
                           <td className="py-3.5 px-4 whitespace-nowrap">
-                            <strong className="text-stone-900 font-medium block">{d.Nama_Peserta}</strong>
-                            <span className="text-[11px] text-stone-400">{u?.divisi || '-'}</span>
+                            <strong className="text-slate-900 dark:text-white font-medium block">{d.Nama_Peserta}</strong>
+                            <span className="text-[11px] text-slate-400 dark:text-[#858585]">{u?.divisi || '-'}</span>
                           </td>
                           <td className="py-3.5 px-4 whitespace-nowrap">
-                            <span className="bg-stone-100 text-stone-700 px-2 py-0.5 rounded text-[11px]">
+                            <span className="bg-slate-100 dark:bg-[#1e1e1e] border border-slate-200/60 dark:border-[#383838] text-slate-700 dark:text-[#cccccc] px-2 py-0.5 rounded text-[11px]">
                               {d.Kategori}
                             </span>
                           </td>
                           <td className="py-3.5 px-4 max-w-sm">
-                            <p className="line-clamp-2 text-stone-800">{d.Deskripsi_Aktivitas}</p>
+                            <p className="line-clamp-2 text-slate-800 dark:text-[#cccccc]">{d.Deskripsi_Aktivitas}</p>
                             {d.Output_Link && (
                               <a
                                 href={d.Output_Link.startsWith('http') ? d.Output_Link : `https://${d.Output_Link}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="text-[11px] text-stone-500 underline font-mono mt-0.5 block truncate max-w-xs"
+                                className="text-[11px] text-[#0b4e8c] dark:text-[#9cdcfe] underline font-mono mt-0.5 block truncate max-w-xs"
                               >
                                 {d.Output_Link}
                               </a>
@@ -864,13 +866,13 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                           <td className="py-3.5 px-4 whitespace-nowrap">
                             <StatusBadge status={d.Status} size="sm" />
                           </td>
-                          <td className="py-3.5 px-4 text-stone-500 max-w-xs truncate">
+                          <td className="py-3.5 px-4 text-slate-500 dark:text-[#858585] max-w-xs truncate">
                             {d.Catatan_Mentor || '-'}
                           </td>
                           <td className="py-3.5 px-4 text-right whitespace-nowrap">
                             <button
                               onClick={() => viewDailyDetail(d)}
-                              className="p-1.5 text-stone-400 hover:text-stone-800 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
+                              className="p-1.5 text-slate-400 hover:text-[#0b4e8c] dark:text-[#858585] dark:hover:text-[#3794ff] rounded-lg hover:bg-slate-100 dark:hover:bg-[#1e1e1e] transition-colors cursor-pointer"
                               title="Lihat Detail Entri"
                             >
                               <Eye className="w-4 h-4" />
@@ -893,16 +895,16 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
       {activeTab === 'weekly' && (
         <div className="space-y-4">
           {/* Filter Bar */}
-          <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-xs space-y-3">
+          <div className="bg-white dark:bg-[#252526] rounded-2xl border border-slate-200/90 dark:border-[#2d2d2d] p-4 shadow-xs space-y-3">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <div className="relative flex-1">
-                <Search className="w-4 h-4 absolute left-3 top-2.5 text-stone-400 pointer-events-none" />
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400 dark:text-[#858585] pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Cari target mingguan, nama peserta, minggu ISO..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-stone-900 bg-stone-50/40"
+                  className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/50 dark:bg-[#1e1e1e] text-slate-900 dark:text-white"
                 />
               </div>
 
@@ -910,7 +912,7 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                 <select
                   value={selectedDivision}
                   onChange={e => setSelectedDivision(e.target.value)}
-                  className="px-2.5 py-1.5 text-xs rounded-lg border border-stone-200 bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#383838] bg-white dark:bg-[#1e1e1e] text-slate-700 dark:text-[#cccccc] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc]"
                 >
                   <option value="all">Semua Divisi</option>
                   {divisions.map(d => (
@@ -921,7 +923,7 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                 <select
                   value={selectedStatus}
                   onChange={e => setSelectedStatus(e.target.value)}
-                  className="px-2.5 py-1.5 text-xs rounded-lg border border-stone-200 bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#383838] bg-white dark:bg-[#1e1e1e] text-slate-700 dark:text-[#cccccc] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc]"
                 >
                   <option value="all">Semua Status</option>
                   <option value="Menunggu">Menunggu Review</option>
@@ -933,10 +935,10 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-3xl border border-stone-200/80 shadow-xs overflow-hidden">
+          <div className="bg-white dark:bg-[#252526] rounded-3xl border border-slate-200/90 dark:border-[#2d2d2d] shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-stone-50/80 border-b border-stone-200 text-stone-500 uppercase tracking-wider font-semibold text-[10px]">
+                <thead className="bg-slate-50 dark:bg-[#181818] border-b border-slate-200 dark:border-[#2d2d2d] text-slate-500 dark:text-[#858585] uppercase tracking-wider font-semibold text-[10px]">
                   <tr>
                     <th className="py-3 px-4">Minggu Ke</th>
                     <th className="py-3 px-4">Peserta &amp; Divisi</th>
@@ -947,10 +949,10 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                     <th className="py-3 px-4 text-right">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100 text-stone-700">
+                <tbody className="divide-y divide-slate-100 dark:divide-[#2d2d2d] text-slate-700 dark:text-[#cccccc]">
                   {filteredWeekly.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-10 text-stone-400">
+                      <td colSpan={7} className="text-center py-10 text-slate-400 dark:text-[#858585]">
                         Tidak ada rencana mingguan yang sesuai filter.
                       </td>
                     </tr>
@@ -958,30 +960,30 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                     filteredWeekly.map(w => {
                       const u = data.users.find(x => x.userId === w.User_ID);
                       return (
-                        <tr key={w.Plan_ID} className="hover:bg-stone-50/60 transition-colors">
-                          <td className="py-3.5 px-4 font-mono text-[11px] font-semibold text-stone-800 whitespace-nowrap">
+                        <tr key={w.Plan_ID} className="hover:bg-slate-50/70 dark:hover:bg-[#2a2d2e] transition-colors">
+                          <td className="py-3.5 px-4 font-mono text-[11px] font-semibold text-[#0b4e8c] dark:text-[#9cdcfe] whitespace-nowrap">
                             {w.Minggu_Ke}
                           </td>
                           <td className="py-3.5 px-4 whitespace-nowrap">
-                            <strong className="text-stone-900 font-medium block">{w.Nama_Peserta}</strong>
-                            <span className="text-[11px] text-stone-400">{u?.divisi || '-'}</span>
+                            <strong className="text-slate-900 dark:text-white font-medium block">{w.Nama_Peserta}</strong>
+                            <span className="text-[11px] text-slate-400 dark:text-[#858585]">{u?.divisi || '-'}</span>
                           </td>
                           <td className="py-3.5 px-4 max-w-md">
-                            <p className="line-clamp-2 text-stone-800">{w.Target_Mingguan}</p>
+                            <p className="line-clamp-2 text-slate-800 dark:text-[#cccccc]">{w.Target_Mingguan}</p>
                           </td>
-                          <td className="py-3.5 px-4 font-mono text-[11px] text-stone-500 whitespace-nowrap">
+                          <td className="py-3.5 px-4 font-mono text-[11px] text-slate-500 dark:text-[#858585] whitespace-nowrap">
                             {w.Tanggal_Input}
                           </td>
                           <td className="py-3.5 px-4 whitespace-nowrap">
                             <StatusBadge status={w.Status} size="sm" />
                           </td>
-                          <td className="py-3.5 px-4 text-stone-500 max-w-xs truncate">
+                          <td className="py-3.5 px-4 text-slate-500 dark:text-[#858585] max-w-xs truncate">
                             {w.Catatan_Mentor || '-'}
                           </td>
                           <td className="py-3.5 px-4 text-right whitespace-nowrap">
                             <button
                               onClick={() => viewWeeklyDetail(w)}
-                              className="p-1.5 text-stone-400 hover:text-stone-800 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
+                              className="p-1.5 text-slate-400 hover:text-[#0b4e8c] dark:text-[#858585] dark:hover:text-[#3794ff] rounded-lg hover:bg-slate-100 dark:hover:bg-[#1e1e1e] transition-colors cursor-pointer"
                               title="Lihat Detail Target"
                             >
                               <Eye className="w-4 h-4" />
@@ -1004,23 +1006,23 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
       {activeTab === 'users' && (
         <div className="space-y-4">
           {/* Filter Bar */}
-          <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-xs">
+          <div className="bg-white dark:bg-[#252526] rounded-2xl border border-slate-200/90 dark:border-[#2d2d2d] p-4 shadow-xs">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <div className="relative flex-1">
-                <Search className="w-4 h-4 absolute left-3 top-2.5 text-stone-400 pointer-events-none" />
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400 dark:text-[#858585] pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Cari nama pengguna, ID, atau email..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-stone-900 bg-stone-50/40"
+                  className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/50 dark:bg-[#1e1e1e] text-slate-900 dark:text-white"
                 />
               </div>
 
               <select
                 value={selectedDivision}
                 onChange={e => setSelectedDivision(e.target.value)}
-                className="px-2.5 py-1.5 text-xs rounded-lg border border-stone-200 bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#383838] bg-white dark:bg-[#1e1e1e] text-slate-700 dark:text-[#cccccc] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc]"
               >
                 <option value="all">Semua Divisi</option>
                 {divisions.map(d => (
@@ -1031,10 +1033,10 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-3xl border border-stone-200/80 shadow-xs overflow-hidden">
+          <div className="bg-white dark:bg-[#252526] rounded-3xl border border-slate-200/90 dark:border-[#2d2d2d] shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-stone-50/80 border-b border-stone-200 text-stone-500 uppercase tracking-wider font-semibold text-[10px]">
+                <thead className="bg-slate-50 dark:bg-[#181818] border-b border-slate-200 dark:border-[#2d2d2d] text-slate-500 dark:text-[#858585] uppercase tracking-wider font-semibold text-[10px]">
                   <tr>
                     <th className="py-3 px-4">User ID</th>
                     <th className="py-3 px-4">Nama Lengkap</th>
@@ -1045,10 +1047,10 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                     <th className="py-3 px-4 text-right">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100 text-stone-700">
+                <tbody className="divide-y divide-slate-100 dark:divide-[#2d2d2d] text-slate-700 dark:text-[#cccccc]">
                   {filteredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-10 text-stone-400">
+                      <td colSpan={7} className="text-center py-10 text-slate-400 dark:text-[#858585]">
                         Tidak ada pengguna yang sesuai pencarian.
                       </td>
                     </tr>
@@ -1058,41 +1060,41 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                       const mentees = interns.filter(i => i.mentorId === u.userId);
 
                       return (
-                        <tr key={u.userId} className="hover:bg-stone-50/60 transition-colors">
-                          <td className="py-3.5 px-4 font-mono text-[11px] text-stone-500 whitespace-nowrap">
+                        <tr key={u.userId} className="hover:bg-slate-50/70 dark:hover:bg-[#2a2d2e] transition-colors">
+                          <td className="py-3.5 px-4 font-mono text-[11px] text-slate-500 dark:text-[#858585] whitespace-nowrap">
                             {u.userId}
                           </td>
-                          <td className="py-3.5 px-4 font-semibold text-stone-900 whitespace-nowrap">
+                          <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-white whitespace-nowrap">
                             {u.nama}
                           </td>
-                          <td className="py-3.5 px-4 text-stone-600 font-mono text-[11px] whitespace-nowrap">
+                          <td className="py-3.5 px-4 text-slate-600 dark:text-[#cccccc] font-mono text-[11px] whitespace-nowrap">
                             {u.email}
                           </td>
                           <td className="py-3.5 px-4 whitespace-nowrap">
                             <span
                               className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
                                 u.role === 'Peserta'
-                                  ? 'bg-sky-50 text-sky-800 border-sky-200'
+                                  ? 'bg-blue-50 text-[#0b4e8c] border-blue-200/70 dark:bg-[#1e2733] dark:text-[#9cdcfe] dark:border-[#264f78]'
                                   : u.role === 'Mentor'
-                                  ? 'bg-amber-50 text-amber-900 border-amber-200'
-                                  : 'bg-stone-100 text-stone-800 border-stone-200'
+                                  ? 'bg-amber-50 text-amber-900 border-amber-200/70 dark:bg-[#342c15] dark:text-[#dcdcaa] dark:border-[#5a4d22]'
+                                  : 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-[#1e1e1e] dark:text-[#cccccc] dark:border-[#383838]'
                               }`}
                             >
                               {u.role}
                             </span>
                           </td>
                           <td className="py-3.5 px-4 whitespace-nowrap">{u.divisi}</td>
-                          <td className="py-3.5 px-4 whitespace-nowrap text-stone-600">
+                          <td className="py-3.5 px-4 whitespace-nowrap text-slate-600 dark:text-[#cccccc]">
                             {u.role === 'Peserta' ? (
                               mentor ? (
-                                <span className="font-medium text-stone-800">
-                                  {mentor.nama} <span className="text-stone-400 font-mono text-[10px]">({mentor.userId})</span>
+                                <span className="font-medium text-slate-800 dark:text-white">
+                                  {mentor.nama} <span className="text-slate-400 dark:text-[#858585] font-mono text-[10px]">({mentor.userId})</span>
                                 </span>
                               ) : (
-                                <span className="text-amber-700 italic">Belum ditentukan</span>
+                                <span className="text-amber-700 dark:text-[#dcdcaa] italic">Belum ditentukan</span>
                               )
                             ) : u.role === 'Mentor' ? (
-                              <span className="text-xs text-stone-500">
+                              <span className="text-xs text-slate-500 dark:text-[#858585]">
                                 {mentees.length} Peserta ({mentees.map(m => m.nama).join(', ') || '-'})
                               </span>
                             ) : (
@@ -1102,10 +1104,10 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                           <td className="py-3.5 px-4 text-right whitespace-nowrap">
                             <button
                               onClick={() => openResetPinModal(u)}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-stone-700 hover:text-stone-900 bg-stone-100 hover:bg-stone-200/80 rounded-lg transition-colors cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-[#cccccc] hover:text-[#0b4e8c] dark:hover:text-white bg-slate-100 dark:bg-[#1e1e1e] hover:bg-slate-200/80 dark:hover:bg-[#2d2d2d] rounded-lg transition-colors cursor-pointer border border-slate-200/60 dark:border-[#383838]"
                               title={`Reset PIN ${u.nama}`}
                             >
-                              <KeyRound className="w-3.5 h-3.5 text-stone-500" />
+                              <KeyRound className="w-3.5 h-3.5 text-[#0b4e8c] dark:text-[#9cdcfe]" />
                               <span>Reset PIN</span>
                             </button>
                           </td>
@@ -1131,31 +1133,31 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
       >
         {detailItem && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#2d2d2d]">
               <div className="flex items-center gap-2">
                 <StatusBadge status={detailItem.status} />
                 {detailItem.kategori && (
-                  <span className="text-xs bg-stone-100 border border-stone-200 px-2 py-0.5 rounded text-stone-700">
+                  <span className="text-xs bg-slate-100 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838] px-2 py-0.5 rounded text-slate-700 dark:text-[#cccccc]">
                     {detailItem.kategori}
                   </span>
                 )}
               </div>
-              <span className="text-xs text-stone-500">
-                Mentor: <strong className="text-stone-800">{detailItem.mentorName}</strong>
+              <span className="text-xs text-slate-500 dark:text-[#858585]">
+                Mentor: <strong className="text-slate-800 dark:text-white">{detailItem.mentorName}</strong>
               </span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-stone-50/70 border border-stone-200/60 text-xs">
-              <span className="font-semibold text-stone-500 uppercase tracking-wider block text-[10px] mb-1">
+            <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-[#1e1e1e] border border-slate-200/60 dark:border-[#2d2d2d] text-xs">
+              <span className="font-semibold text-slate-500 dark:text-[#858585] uppercase tracking-wider block text-[10px] mb-1">
                 {detailItem.type === 'daily' ? 'Deskripsi Aktivitas:' : 'Target Mingguan:'}
               </span>
-              <p className="text-stone-800 whitespace-pre-line leading-relaxed text-sm">
+              <p className="text-slate-800 dark:text-[#cccccc] whitespace-pre-line leading-relaxed text-sm">
                 {detailItem.content}
               </p>
 
               {detailItem.outputLink && (
-                <div className="mt-3 pt-2.5 border-t border-stone-200 flex items-center gap-1.5">
-                  <span className="text-stone-500 font-medium">Tautan Output:</span>
+                <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-[#2d2d2d] flex items-center gap-1.5">
+                  <span className="text-slate-500 dark:text-[#858585] font-medium">Tautan Output:</span>
                   <a
                     href={
                       detailItem.outputLink.startsWith('http')
@@ -1164,28 +1166,28 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                     }
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-stone-800 hover:text-stone-950 font-mono underline underline-offset-2 break-all"
+                    className="inline-flex items-center gap-1 text-[#0b4e8c] dark:text-[#9cdcfe] hover:underline font-mono break-all"
                   >
                     {detailItem.outputLink}
-                    <ExternalLink className="w-3 h-3 text-stone-400" />
+                    <ExternalLink className="w-3 h-3 text-slate-400" />
                   </a>
                 </div>
               )}
 
               {detailItem.kendala && detailItem.kendala.trim() !== '' && detailItem.kendala !== 'Tidak ada kendala.' && (
-                <div className="mt-3 pt-2.5 border-t border-stone-200 text-amber-900">
-                  <strong className="font-semibold">Kendala Teknis:</strong> {detailItem.kendala}
+                <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-[#2d2d2d] text-amber-900 dark:text-[#dcdcaa]">
+                  <strong className="font-semibold text-amber-950 dark:text-[#e3b341]">Kendala Teknis:</strong> {detailItem.kendala}
                 </div>
               )}
             </div>
 
             {detailItem.catatanMentor ? (
-              <div className="p-3.5 rounded-2xl bg-stone-100/70 border border-stone-200 text-xs">
-                <strong className="text-stone-800 block mb-1">Catatan dari Mentor:</strong>
-                <p className="text-stone-700 italic leading-relaxed">{detailItem.catatanMentor}</p>
+              <div className="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-[#1e2733] border border-blue-200/60 dark:border-[#264f78] text-xs">
+                <strong className="text-[#0b4e8c] dark:text-[#9cdcfe] block mb-1">Catatan dari Mentor:</strong>
+                <p className="text-slate-700 dark:text-[#cccccc] italic leading-relaxed">{detailItem.catatanMentor}</p>
               </div>
             ) : (
-              <div className="p-3 rounded-xl bg-stone-50 border border-dashed border-stone-200 text-xs text-stone-400 text-center">
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#1e1e1e] border border-dashed border-slate-200 dark:border-[#2d2d2d] text-xs text-slate-400 dark:text-[#858585] text-center">
                 Belum ada catatan mentor untuk entri ini.
               </div>
             )}
@@ -1194,7 +1196,7 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
               <button
                 type="button"
                 onClick={() => setDetailModalOpen(false)}
-                className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold rounded-xl cursor-pointer"
+                className="px-4 py-2 bg-[#0b4e8c] hover:bg-[#083b6b] dark:bg-[#0e639c] dark:hover:bg-[#1177bb] text-white text-xs font-semibold rounded-xl cursor-pointer transition-colors"
               >
                 Tutup
               </button>
@@ -1213,34 +1215,34 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
         {resetPinTarget && (
           <form onSubmit={handleExecuteResetPin} className="space-y-4">
             {resetPinError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-[#341b1d] border border-rose-200 dark:border-[#5c2427] text-xs text-rose-800 dark:text-[#f48771] flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-[#f48771] shrink-0" />
                 <span>{resetPinError}</span>
               </div>
             )}
 
             {resetPinSuccess && (
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-[#1b3424] border border-emerald-200 dark:border-[#2e6040] text-xs text-emerald-800 dark:text-[#4ec9b0] flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-600 dark:text-[#4ec9b0] shrink-0" />
                 <span>{resetPinSuccess}</span>
               </div>
             )}
 
-            <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200 text-xs space-y-1">
-              <span className="text-stone-500 font-medium">Pengguna yang direset:</span>
-              <p className="font-semibold text-stone-800">{resetPinTarget.nama} ({resetPinTarget.userId})</p>
-              <p className="text-stone-500">{resetPinTarget.email} • {resetPinTarget.role} ({resetPinTarget.divisi})</p>
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838] text-xs space-y-1">
+              <span className="text-slate-500 dark:text-[#858585] font-medium">Pengguna yang direset:</span>
+              <p className="font-semibold text-slate-800 dark:text-white">{resetPinTarget.nama} ({resetPinTarget.userId})</p>
+              <p className="text-slate-500 dark:text-[#858585]">{resetPinTarget.email} • {resetPinTarget.role} ({resetPinTarget.divisi})</p>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold text-stone-700">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4]">
                   PIN Baru Pengguna
                 </label>
-                <span className="text-[11px] text-stone-400">Default: 1234 (4-8 digit)</span>
+                <span className="text-[11px] text-slate-400 dark:text-[#858585]">Default: 1234 (4-8 digit)</span>
               </div>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-[#858585]">
                   <KeyRound className="w-4 h-4" />
                 </div>
                 <input
@@ -1250,10 +1252,10 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                   placeholder="1234"
                   value={resetPinValue}
                   onChange={(e) => setResetPinValue(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white tracking-widest font-mono"
+                  className="w-full pl-10 pr-3.5 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-white dark:bg-[#1e1e1e] text-slate-900 dark:text-white tracking-widest font-mono"
                 />
               </div>
-              <p className="text-[11px] text-stone-400 mt-1">
+              <p className="text-[11px] text-slate-400 dark:text-[#858585] mt-1">
                 Sistem akan menyimpan PIN ini ke Google Spreadsheet. Sampaikan PIN ini kepada pemilik akun.
               </p>
             </div>
@@ -1262,14 +1264,14 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
               <button
                 type="button"
                 onClick={() => setResetPinModalOpen(false)}
-                className="px-3 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 cursor-pointer"
+                className="px-3 py-2 text-xs font-medium text-slate-600 dark:text-[#858585] hover:text-slate-900 dark:hover:text-white cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="submit"
                 disabled={resetPinLoading}
-                className="px-4 py-2 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
+                className="px-4 py-2 bg-[#0b4e8c] hover:bg-[#083b6b] dark:bg-[#0e639c] dark:hover:bg-[#1177bb] disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
               >
                 {resetPinLoading ? 'Mereset...' : 'Simpan & Reset PIN'}
               </button>

@@ -77,7 +77,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-50/70 text-stone-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#1e1e1e] text-slate-900 dark:text-[#cccccc] flex flex-col font-sans transition-colors duration-200">
       <Navbar
         user={user}
         onLogout={handleLogout}
@@ -86,14 +86,14 @@ export default function App() {
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {error && (
-          <div className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200/80 flex items-start justify-between gap-3 text-xs text-rose-800">
+          <div className="mb-6 p-4 rounded-2xl bg-rose-50 dark:bg-[#341b1d] border border-rose-200/80 dark:border-[#5c2427] flex items-start justify-between gap-3 text-xs text-rose-800 dark:text-[#f48771] animate-fade-in-up">
             <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-[#f48771] shrink-0" />
               <span>{error}</span>
             </div>
             <button
               onClick={fetchData}
-              className="inline-flex items-center gap-1 font-semibold text-rose-900 underline hover:no-underline cursor-pointer shrink-0"
+              className="inline-flex items-center gap-1 font-semibold text-rose-900 dark:text-[#f48771] underline hover:no-underline cursor-pointer shrink-0"
             >
               <RefreshCw className="w-3 h-3" /> Coba Lagi
             </button>
@@ -102,8 +102,8 @@ export default function App() {
 
         {loading && !dashboardData ? (
           <div className="py-24 text-center">
-            <div className="w-7 h-7 border-2 border-stone-800 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-xs text-stone-500 font-medium tracking-wide">Memuat data logbook...</p>
+            <div className="w-8 h-8 border-3 border-[#0b4e8c] dark:border-[#007acc] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-xs text-slate-500 dark:text-[#858585] font-medium tracking-wide">Memuat data logbook...</p>
           </div>
         ) : dashboardData ? (
           <>
@@ -136,20 +136,20 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-stone-200/60 py-6 text-center text-xs text-stone-400">
+      <footer className="border-t border-slate-200/70 dark:border-[#2d2d2d] bg-white/60 dark:bg-[#181818] py-6 text-center text-xs text-slate-400 dark:text-[#858585] transition-colors duration-200">
         <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>© {new Date().getFullYear()} MagangHub — Dirancang sederhana, fokus pada progres.</p>
-          <div className="flex items-center gap-4 text-stone-500">
+          <p>© {new Date().getFullYear()} PT. Shelter Indonesia Gemilang — MagangHub Logbook.</p>
+          <div className="flex items-center gap-4 text-slate-500 dark:text-[#858585]">
             <button
               onClick={() => setChangePinOpen(true)}
-              className="hover:text-stone-800 cursor-pointer"
+              className="hover:text-[#0b4e8c] dark:hover:text-[#9cdcfe] cursor-pointer transition-colors"
             >
               Ganti PIN
             </button>
             <span>•</span>
             <button
               onClick={fetchData}
-              className="hover:text-stone-800 cursor-pointer"
+              className="hover:text-[#0b4e8c] dark:hover:text-[#9cdcfe] cursor-pointer transition-colors"
             >
               Sinkronisasi Ulang
             </button>
