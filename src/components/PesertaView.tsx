@@ -15,7 +15,8 @@ import {
   FolderGit2,
   Target,
   Sparkles,
-  BookOpen
+  BookOpen,
+  Trash2
 } from 'lucide-react';
 
 interface Props {
@@ -59,6 +60,27 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
   });
   const [weeklyLoading, setWeeklyLoading] = useState(false);
   const [weeklyError, setWeeklyError] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteItem = async (id: string, type: 'daily' | 'weekly', label: string) => {
+    if (!window.confirm(`Hapus ${label}? Tindakan ini tidak dapat dibatalkan.`)) {
+      return;
+    }
+
+    setDeletingId(id);
+    try {
+      const res = await api.deleteItem(user.email, pin, { id, type });
+      if (res.status === 'success') {
+        onRefresh();
+      } else {
+        alert(res.message || 'Gagal menghapus data.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Terjadi kesalahan sistem.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // Stats calculation
   const approvedDaily = data.dailyActivities.filter(d => d.Status === 'Disetujui').length;
@@ -307,8 +329,9 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <StatusBadge status={item.Status} />
+                        {/* Edit: Hanya jika belum Disetujui (Menunggu atau Revisi) */}
                         {!isApproved && (
                           <button
                             onClick={() => openEditDaily(item)}
@@ -316,6 +339,17 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
                             title="Edit aktivitas"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {/* Hapus: HANYA jika status Menunggu (Revisi dan Disetujui tidak bisa dihapus) */}
+                        {item.Status === 'Menunggu' && (
+                          <button
+                            onClick={() => handleDeleteItem(item.Log_ID, 'daily', `aktivitas tanggal ${item.Tanggal}`)}
+                            disabled={deletingId === item.Log_ID}
+                            className="p-1.5 text-stone-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer disabled:opacity-50"
+                            title="Hapus aktivitas"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>
@@ -403,8 +437,9 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
                         <span className="text-xs text-stone-400 font-mono">Diinput: {item.Tanggal_Input}</span>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <StatusBadge status={item.Status} />
+                        {/* Edit: Hanya jika belum Disetujui (Menunggu atau Revisi) */}
                         {!isApproved && (
                           <button
                             onClick={() => openEditWeekly(item)}
@@ -412,6 +447,17 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
                             title="Edit rencana mingguan"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {/* Hapus: HANYA jika status Menunggu (Revisi dan Disetujui tidak bisa dihapus) */}
+                        {item.Status === 'Menunggu' && (
+                          <button
+                            onClick={() => handleDeleteItem(item.Plan_ID, 'weekly', `rencana minggu ${item.Minggu_Ke}`)}
+                            disabled={deletingId === item.Plan_ID}
+                            className="p-1.5 text-stone-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer disabled:opacity-50"
+                            title="Hapus rencana mingguan"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>

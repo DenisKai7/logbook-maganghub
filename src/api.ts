@@ -336,6 +336,38 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
     }
   }
 
+  if (action === 'deleteItem') {
+    if (user.role !== 'Peserta') {
+      return { status: 'error', message: 'Hanya Peserta yang dapat menghapus data.' };
+    }
+    const payload = req.data || {};
+    if (!payload.id || !payload.type) {
+      return { status: 'error', message: 'Payload hapus tidak valid.' };
+    }
+
+    if (payload.type === 'weekly') {
+      const idx = db.weeklyPlans.findIndex(w => w.Plan_ID === payload.id);
+      if (idx === -1) return { status: 'error', message: 'Item tidak ditemukan.' };
+      if (db.weeklyPlans[idx].User_ID !== user.userId) return { status: 'error', message: 'Akses ditolak.' };
+      if (db.weeklyPlans[idx].Status !== 'Menunggu') {
+        return { status: 'error', message: 'Hanya item dengan status Menunggu yang dapat dihapus.' };
+      }
+      db.weeklyPlans.splice(idx, 1);
+      saveMockDB(db);
+      return { status: 'success', message: 'Rencana mingguan berhasil dihapus.' };
+    } else {
+      const idx = db.dailyActivities.findIndex(d => d.Log_ID === payload.id);
+      if (idx === -1) return { status: 'error', message: 'Item tidak ditemukan.' };
+      if (db.dailyActivities[idx].User_ID !== user.userId) return { status: 'error', message: 'Akses ditolak.' };
+      if (db.dailyActivities[idx].Status !== 'Menunggu') {
+        return { status: 'error', message: 'Hanya item dengan status Menunggu yang dapat dihapus.' };
+      }
+      db.dailyActivities.splice(idx, 1);
+      saveMockDB(db);
+      return { status: 'success', message: 'Aktivitas harian berhasil dihapus.' };
+    }
+  }
+
   return { status: 'error', message: 'Action tidak dikenali: ' + action };
 }
 
@@ -351,4 +383,6 @@ export const api = {
   ) => sendRequest({ action: 'saveDailyActivity', email, pin, data }),
   reviewItem: (email: string, pin: string, data: { id: string; type: 'weekly' | 'daily'; status: 'Disetujui' | 'Revisi'; catatan: string }) =>
     sendRequest({ action: 'reviewItem', email, pin, data }),
+  deleteItem: (email: string, pin: string, data: { id: string; type: 'weekly' | 'daily' }) =>
+    sendRequest({ action: 'deleteItem', email, pin, data }),
 };
