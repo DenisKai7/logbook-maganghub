@@ -1,13 +1,14 @@
 import React from 'react';
 import { User } from '../types';
-import { LogOut, UserCheck, ShieldCheck, GraduationCap } from 'lucide-react';
+import { LogOut, UserCheck, ShieldCheck, GraduationCap, KeyRound } from 'lucide-react';
 
 interface Props {
   user: User;
   onLogout: () => void;
+  onOpenChangePin: () => void;
 }
 
-export const Navbar: React.FC<Props> = ({ user, onLogout }) => {
+export const Navbar: React.FC<Props> = ({ user, onLogout, onOpenChangePin }) => {
   const getRoleBadge = () => {
     switch (user.role) {
       case 'Peserta':
@@ -63,8 +64,17 @@ export const Navbar: React.FC<Props> = ({ user, onLogout }) => {
           </div>
 
           <button
+            onClick={onOpenChangePin}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg border border-stone-200/80 hover:bg-stone-50 text-stone-600 transition-colors cursor-pointer"
+            title="Ganti PIN Akun"
+          >
+            <KeyRound className="w-3.5 h-3.5 text-stone-500" />
+            <span className="hidden md:inline font-medium">Ganti PIN</span>
+          </button>
+
+          <button
             onClick={onLogout}
-            className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer ml-1"
+            className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer ml-0.5"
             title="Keluar"
             aria-label="Keluar"
           >

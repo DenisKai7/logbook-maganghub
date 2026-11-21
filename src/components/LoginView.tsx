@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../api';
 import { User } from '../types';
+import { Modal } from './Modal';
 import { Mail, ArrowRight, KeyRound } from 'lucide-react';
 
 interface Props {
@@ -12,6 +13,7 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess }) => {
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [forgotModalOpen, setForgotModalOpen] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,9 +86,18 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess }) => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1">
-                Kode PIN
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-stone-700">
+                  Kode PIN
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setForgotModalOpen(true)}
+                  className="text-[11px] text-stone-400 hover:text-stone-700 underline hover:no-underline cursor-pointer"
+                >
+                  Lupa PIN?
+                </button>
+              </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400">
                   <KeyRound className="w-4 h-4" />
@@ -114,6 +125,39 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess }) => {
           </form>
         </div>
       </div>
+
+      <Modal
+        isOpen={forgotModalOpen}
+        onClose={() => setForgotModalOpen(false)}
+        title="Bantuan Lupa PIN"
+        subtitle="Prosedur pemulihan akses akun MagangHub"
+      >
+        <div className="space-y-4 text-xs text-stone-600 leading-relaxed">
+          <p>
+            Untuk menjaga keamanan data logbook dan mencegah penyalahgunaan akun, reset PIN dilakukan secara terpusat oleh <strong>Admin HR (Human Resources)</strong>.
+          </p>
+
+          <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 space-y-2">
+            <p className="font-semibold text-stone-800">Langkah Reset PIN:</p>
+            <ol className="list-decimal pl-4 space-y-1 text-stone-600">
+              <li>Hubungi tim HRD perusahaan.</li>
+              <li>Sebutkan nama lengkap dan email Anda yang terdaftar.</li>
+              <li>Admin HR akan mereset PIN akun Anda ke PIN standar (<strong>1234</strong>).</li>
+              <li>Setelah berhasil login kembali, Anda dapat langsung memperbarui PIN melalui menu <strong>Ganti PIN</strong>.</li>
+            </ol>
+          </div>
+
+          <div className="pt-2 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setForgotModalOpen(false)}
+              className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold rounded-xl cursor-pointer"
+            >
+              Mengerti
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

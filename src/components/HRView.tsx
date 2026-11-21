@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { User, HRData, DailyActivity, WeeklyPlan, ItemStatus } from '../types';
+import { api } from '../api';
 import { StatusBadge } from './StatusBadge';
 import { Modal } from './Modal';
 import {
@@ -23,18 +24,21 @@ import {
   Activity,
   ArrowUpRight,
   ShieldAlert,
-  FolderGit2
+  FolderGit2,
+  KeyRound,
+  Check
 } from 'lucide-react';
 
 interface Props {
   user: User;
   data: HRData;
+  pin: string;
   onRefresh: () => void;
 }
 
 type TabType = 'overview' | 'daily' | 'weekly' | 'users';
 
-export const HRView: React.FC<Props> = ({ user, data, onRefresh }) => {
+export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDivision, setSelectedDivision] = useState<string>('all');
@@ -58,6 +62,56 @@ export const HRView: React.FC<Props> = ({ user, data, onRefresh }) => {
     catatanMentor?: string;
     mentorName?: string;
   } | null>(null);
+
+  // Reset PIN Modal State (Admin HR)
+  const [resetPinModalOpen, setResetPinModalOpen] = useState(false);
+  const [resetPinTarget, setResetPinTarget] = useState<User | null>(null);
+  const [resetPinValue, setResetPinValue] = useState('1234');
+  const [resetPinLoading, setResetPinLoading] = useState(false);
+  const [resetPinError, setResetPinError] = useState('');
+  const [resetPinSuccess, setResetPinSuccess] = useState('');
+
+  const openResetPinModal = (targetUser: User) => {
+    setResetPinTarget(targetUser);
+    setResetPinValue('1234');
+    setResetPinError('');
+    setResetPinSuccess('');
+    setResetPinModalOpen(true);
+  };
+
+  const handleExecuteResetPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetPinTarget) return;
+
+    if (!/^\d{4,8}$/.test(resetPinValue.trim())) {
+      setResetPinError('PIN baru harus berupa 4 sampai 8 digit angka.');
+      return;
+    }
+
+    setResetPinLoading(true);
+    setResetPinError('');
+    setResetPinSuccess('');
+
+    try {
+      const res = await api.resetPin(user.email, pin, {
+        userId: resetPinTarget.userId,
+        newPin: resetPinValue.trim()
+      });
+
+      if (res.status === 'success') {
+        setResetPinSuccess(`PIN ${resetPinTarget.nama} berhasil direset ke "${resetPinValue.trim()}". Sampaikan PIN ini kepada pengguna.`);
+        setTimeout(() => {
+          onRefresh();
+        }, 1800);
+      } else {
+        setResetPinError(res.message || 'Gagal mereset PIN.');
+      }
+    } catch (err: any) {
+      setResetPinError(err.message || 'Terjadi kesalahan sistem.');
+    } finally {
+      setResetPinLoading(false);
+    }
+  };
 
   // Core entities
   const interns = useMemo(() => data.users.filter(u => u.role === 'Peserta'), [data.users]);
@@ -988,12 +1042,13 @@ export const HRView: React.FC<Props> = ({ user, data, onRefresh }) => {
                     <th className="py-3 px-4">Role Sistem</th>
                     <th className="py-3 px-4">Divisi</th>
                     <th className="py-3 px-4">Relasi Mentoring</th>
+                    <th className="py-3 px-4 text-right">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100 text-stone-700">
                   {filteredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="text-center py-10 text-stone-400">
+                      <td colSpan={7} className="text-center py-10 text-stone-400">
                         Tidak ada pengguna yang sesuai pencarian.
                       </td>
                     </tr>
@@ -1043,6 +1098,16 @@ export const HRView: React.FC<Props> = ({ user, data, onRefresh }) => {
                             ) : (
                               '—'
                             )}
+                          </td>
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                            <button
+                              onClick={() => openResetPinModal(u)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-stone-700 hover:text-stone-900 bg-stone-100 hover:bg-stone-200/80 rounded-lg transition-colors cursor-pointer"
+                              title={`Reset PIN ${u.nama}`}
+                            >
+                              <KeyRound className="w-3.5 h-3.5 text-stone-500" />
+                              <span>Reset PIN</span>
+                            </button>
                           </td>
                         </tr>
                       );
@@ -1135,6 +1200,81 @@ export const HRView: React.FC<Props> = ({ user, data, onRefresh }) => {
               </button>
             </div>
           </div>
+        )}
+      </Modal>
+
+      {/* RESET PIN MODAL (ADMIN HR) */}
+      <Modal
+        isOpen={resetPinModalOpen}
+        onClose={() => setResetPinModalOpen(false)}
+        title="Reset PIN Pengguna"
+        subtitle={resetPinTarget ? `${resetPinTarget.nama} (${resetPinTarget.email})` : ''}
+      >
+        {resetPinTarget && (
+          <form onSubmit={handleExecuteResetPin} className="space-y-4">
+            {resetPinError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{resetPinError}</span>
+              </div>
+            )}
+
+            {resetPinSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{resetPinSuccess}</span>
+              </div>
+            )}
+
+            <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200 text-xs space-y-1">
+              <span className="text-stone-500 font-medium">Pengguna yang direset:</span>
+              <p className="font-semibold text-stone-800">{resetPinTarget.nama} ({resetPinTarget.userId})</p>
+              <p className="text-stone-500">{resetPinTarget.email} • {resetPinTarget.role} ({resetPinTarget.divisi})</p>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-stone-700">
+                  PIN Baru Pengguna
+                </label>
+                <span className="text-[11px] text-stone-400">Default: 1234 (4-8 digit)</span>
+              </div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400">
+                  <KeyRound className="w-4 h-4" />
+                </div>
+                <input
+                  type="text"
+                  required
+                  maxLength={8}
+                  placeholder="1234"
+                  value={resetPinValue}
+                  onChange={(e) => setResetPinValue(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-stone-900 bg-white tracking-widest font-mono"
+                />
+              </div>
+              <p className="text-[11px] text-stone-400 mt-1">
+                Sistem akan menyimpan PIN ini ke Google Spreadsheet. Sampaikan PIN ini kepada pemilik akun.
+              </p>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setResetPinModalOpen(false)}
+                className="px-3 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={resetPinLoading}
+                className="px-4 py-2 bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
+              >
+                {resetPinLoading ? 'Mereset...' : 'Simpan & Reset PIN'}
+              </button>
+            </div>
+          </form>
         )}
       </Modal>
     </div>

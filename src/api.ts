@@ -534,6 +534,56 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
     }
   }
 
+  if (action === "resetPin") {
+    if (user.role !== "HR") {
+      return { status: "error", message: "Hanya HR yang dapat mereset PIN pengguna." };
+    }
+    const payload = req.data || {};
+    if (!payload.userId && !payload.email) {
+      return { status: "error", message: "Target userId atau email wajib diisi." };
+    }
+    const nextPin = String(payload.newPin || "1234").trim();
+    if (!/^\d{4,8}$/.test(nextPin)) {
+      return { status: "error", message: "PIN harus terdiri dari 4 sampai 8 digit angka." };
+    }
+    const target = db.users.find(
+      (u) =>
+        (payload.userId && u.userId === String(payload.userId).trim()) ||
+        (payload.email && u.email.toLowerCase() === String(payload.email).trim().toLowerCase())
+    );
+    if (!target) return { status: "error", message: "Pengguna tidak ditemukan." };
+    target.pin = nextPin;
+    saveMockDB(db);
+    return {
+      status: "success",
+      message: "PIN berhasil direset.",
+      data: { userId: target.userId, email: target.email, resetPin: nextPin } as unknown as T,
+    };
+  }
+
+  if (action === "changePin") {
+    const payload = req.data || {};
+    if (!payload.currentPin || !payload.newPin) {
+      return { status: "error", message: "PIN lama dan PIN baru wajib diisi." };
+    }
+    const currentPin = String(payload.currentPin).trim();
+    const newPin = String(payload.newPin).trim();
+    if (!/^\d{4,8}$/.test(newPin)) {
+      return { status: "error", message: "PIN baru harus terdiri dari 4 sampai 8 digit angka." };
+    }
+    const target = db.users.find((u) => u.userId === user.userId);
+    if (!target) return { status: "error", message: "Akun pengguna tidak ditemukan." };
+    if (target.pin !== currentPin) {
+      return { status: "error", message: "PIN lama tidak sesuai." };
+    }
+    target.pin = newPin;
+    saveMockDB(db);
+    return {
+      status: "success",
+      message: "PIN berhasil diubah. Silakan gunakan PIN baru saat login berikutnya.",
+    };
+  }
+
   return { status: "error", message: "Action tidak dikenali: " + action };
 }
 
@@ -574,4 +624,20 @@ export const api = {
     pin: string,
     data: { id: string; type: "weekly" | "daily" },
   ) => sendRequest({ action: "deleteItem", email, pin, data }),
+  resetPin: (
+    email: string,
+    pin: string,
+    data: { userId?: string; email?: string; newPin?: string },
+  ) =>
+    sendRequest<{ userId: string; email: string; resetPin: string }>({
+      action: "resetPin",
+      email,
+      pin,
+      data,
+    }),
+  changePin: (
+    email: string,
+    pin: string,
+    data: { currentPin: string; newPin: string },
+  ) => sendRequest({ action: "changePin", email, pin, data }),
 };
