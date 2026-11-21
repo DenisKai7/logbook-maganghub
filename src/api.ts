@@ -100,29 +100,48 @@ export function resetMockData(): void {
 async function sendRequest<T>(payload: Record<string, any>): Promise<ApiResponse<T>> {
   const url = getScriptUrl();
 
-  // If live URL exists, try network call first
+  // If live URL exists, try network call
   if (url) {
     try {
       const res = await fetch(url, {
         method: 'POST',
-        // Note: Using text/plain prevents CORS preflight OPTIONS in Apps Script
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      const text = await res.text();
+      let json: ApiResponse<T>;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        if (text.includes('Halaman Tidak Ditemukan') || text.includes('not found') || text.includes('Error 404')) {
+          return {
+            status: 'error',
+            message: 'URL Google Apps Script mengembalikan 404 (Halaman Tidak Ditemukan). Pastikan deployment Web App aktif dan Who has access diset ke "Anyone".'
+          };
+        }
+        if (text.includes('accounts.google.com') || text.includes('Sign in')) {
+          return {
+            status: 'error',
+            message: 'Izin ditolak Google. Pastikan saat Deploy Web App, opsi "Who has access" dipilih "Anyone" (bukan "Only myself").'
+          };
+        }
+        return {
+          status: 'error',
+          message: 'Respons dari server Google bukan format JSON. Periksa izin deployment Google Apps Script Anda.'
+        };
       }
 
-      const json = await res.json();
       return json;
     } catch (err: any) {
-      console.warn('Apps Script live call error, falling back to local storage:', err);
-      // Fall through to mock DB
+      return {
+        status: 'error',
+        message: `Gagal terhubung ke Google Apps Script: ${err.message || 'CORS/Network Error'}. Periksa koneksi atau URL Web App.`
+      };
     }
   }
 
-  // Local storage mock implementation
+  // Local storage mock implementation ONLY when url is completely empty
   return mockExecute(payload);
 }
 

@@ -72,6 +72,37 @@ export const LoginView: React.FC<Props> = ({ onLoginSuccess, onOpenSettings }) =
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-6 sm:px-10 rounded-3xl border border-stone-200/80 shadow-xl shadow-stone-200/30">
+          {/* Connection Status Banner */}
+          {hasScriptUrl ? (
+            <div className="mb-4 p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/60 flex items-center justify-between text-xs text-emerald-900">
+              <div className="flex items-center gap-1.5 truncate">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                <span className="font-medium truncate">Terhubung ke Apps Script</span>
+              </div>
+              <button
+                type="button"
+                onClick={onOpenSettings}
+                className="text-[11px] font-semibold text-emerald-800 underline hover:no-underline shrink-0 ml-2 cursor-pointer"
+              >
+                Ubah URL
+              </button>
+            </div>
+          ) : (
+            <div className="mb-4 p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/70 flex items-center justify-between text-xs text-amber-900">
+              <div className="flex items-center gap-1.5 truncate">
+                <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                <span className="font-medium truncate">Mode Simulasi Offline (Demo)</span>
+              </div>
+              <button
+                type="button"
+                onClick={onOpenSettings}
+                className="text-[11px] font-semibold text-amber-900 underline hover:no-underline shrink-0 ml-2 cursor-pointer"
+              >
+                Hubungkan API
+              </button>
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-4">
             {error && (
               <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 leading-relaxed">
