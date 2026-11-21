@@ -5,8 +5,11 @@ const STORAGE_PREFIX = 'maganghub_';
 const SCRIPT_URL_KEY = `${STORAGE_PREFIX}script_url`;
 const MOCK_DB_KEY = `${STORAGE_PREFIX}mock_db_v1`;
 
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwzlmlj5tnDYcFK75Lr5-eMGR4-RNXNZTitWlGlkjZ0tQxTrcl975CobV-c6v30Rce0TQ/exec';
+
 export function getScriptUrl(): string {
-  return ((import.meta.env.VITE_APPS_SCRIPT_URL as string) || '').trim();
+  const envUrl = (import.meta.env.VITE_APPS_SCRIPT_URL as string) || '';
+  return (envUrl.trim() || DEFAULT_SCRIPT_URL);
 }
 
 export function getCurrentIsoWeek(d = new Date()): string {
