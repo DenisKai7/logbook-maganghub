@@ -133,6 +133,23 @@ export function getDailyEvidence(d: DailyActivity): string {
   return d['Achieved Target Evidence'] || d.Achieved_Target_Evidence || d.Output_Link || '';
 }
 
+export function isTotalSummaryRow(d: DailyActivity): boolean {
+  const no = String(d.No || '').toUpperCase();
+  const acts = String(d.Activities || d.Deskripsi_Aktivitas || '').toLowerCase();
+  return no.includes('TOTAL') || acts.includes('0 aktivitas') || acts.includes('total aktivitas');
+}
+
+export function getDailyMenteeName(d: DailyActivity, users?: Array<User | MenteeSummary>): string {
+  if (d.Nama_Peserta && d.Nama_Peserta.trim() !== '' && d.Nama_Peserta !== '-') {
+    return d.Nama_Peserta.trim();
+  }
+  if (d.User_ID && users) {
+    const found = users.find(u => String(u.userId).trim() === String(d.User_ID).trim());
+    if (found) return found.nama;
+  }
+  return '-';
+}
+
 export interface PesertaData {
   mentorName: string;
   currentWeek: string;

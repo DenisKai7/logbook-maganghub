@@ -71,10 +71,17 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
   // Mentee filtered dataset
   const menteeDaily = useMemo(() => {
     return data.dailyActivities.filter(d => {
-      if (selectedMentee !== 'all' && d.User_ID !== selectedMentee) return false;
+      if (selectedMentee !== 'all') {
+        const targetMentee = data.mentees.find(m => m.userId === selectedMentee);
+        if (d.User_ID && String(d.User_ID).trim() === selectedMentee) return true;
+        if (d.Nama_Peserta && targetMentee && d.Nama_Peserta.toLowerCase().includes(targetMentee.nama.toLowerCase())) return true;
+        // Fallback for legacy row without User_ID / Nama_Peserta
+        if (!d.User_ID && !d.Nama_Peserta) return true;
+        return false;
+      }
       return true;
     });
-  }, [data.dailyActivities, selectedMentee]);
+  }, [data.dailyActivities, selectedMentee, data.mentees]);
 
   const menteeWeekly = useMemo(() => {
     return data.weeklyPlans.filter(w => {
@@ -809,6 +816,7 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
         <div className="space-y-4 animate-fade-in-up">
           <SpreadsheetDailyTable
             activities={filteredDaily}
+            users={data.mentees}
             mentorMode={true}
             onQuickApprove={(id) => handleQuickApprove(id, 'daily')}
             onReview={(item) =>

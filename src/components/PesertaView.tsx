@@ -190,6 +190,10 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
         targetStatus: dailyForm.targetStatus,
         note: dailyForm.note.trim(),
         evidence: dailyForm.evidence.trim(),
+        // User identity
+        userId: user.userId,
+        namaPeserta: user.nama,
+        mentorId: user.mentorId || '',
         // compatibility
         tanggal: dailyForm.date,
         deskripsi: dailyForm.activities.trim(),

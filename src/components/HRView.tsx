@@ -223,11 +223,13 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
       if (selectedStatus !== 'all' && statusVal !== selectedStatus && d.Status !== selectedStatus) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        const matchName = (d.Nama_Peserta || '').toLowerCase().includes(q);
+        const resolvedName = (d.Nama_Peserta || userMatch?.nama || '').toLowerCase();
+        const matchName = resolvedName.includes(q);
         const matchDesc = getDailyActivities(d).toLowerCase().includes(q);
         const matchDate = getDailyDate(d).toLowerCase().includes(q);
         const matchNote = getDailyNote(d).toLowerCase().includes(q);
-        if (!matchName && !matchDesc && !matchDate && !matchNote) return false;
+        const isLegacyRow = !d.Nama_Peserta && !d.User_ID;
+        if (!matchName && !matchDesc && !matchDate && !matchNote && !isLegacyRow) return false;
       }
       return true;
     });
@@ -844,6 +846,7 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
           {/* Spreadsheet Table matching Personal Daily Activities Sheet */}
           <SpreadsheetDailyTable
             activities={filteredDaily}
+            users={data.users}
             showMenteeColumn={true}
             sheetTabs={['Semua', ...interns.map(i => i.nama)]}
             activeSheetTab={searchQuery ? (interns.find(i => i.nama.toLowerCase().includes(searchQuery.toLowerCase()))?.nama || 'Semua') : 'Semua'}

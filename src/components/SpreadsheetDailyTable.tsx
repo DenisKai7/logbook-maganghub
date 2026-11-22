@@ -1,6 +1,8 @@
 import React from 'react';
 import {
   DailyActivity,
+  User,
+  MenteeSummary,
   getDailyNo,
   getDailyDate,
   getDailyStart,
@@ -12,6 +14,8 @@ import {
   getDailyTargetStatus,
   getDailyNote,
   getDailyEvidence,
+  getDailyMenteeName,
+  isTotalSummaryRow,
 } from '../types';
 import { StatusBadge } from './StatusBadge';
 import {
@@ -27,6 +31,7 @@ import {
 
 interface Props {
   activities: DailyActivity[];
+  users?: Array<User | MenteeSummary>;
   editable?: boolean;
   onEdit?: (item: DailyActivity) => void;
   onDelete?: (item: DailyActivity) => void;
@@ -46,6 +51,7 @@ interface Props {
 
 export const SpreadsheetDailyTable: React.FC<Props> = ({
   activities,
+  users,
   editable = false,
   onEdit,
   onDelete,
@@ -60,6 +66,9 @@ export const SpreadsheetDailyTable: React.FC<Props> = ({
   emptyMessage = 'Belum ada aktivitas yang dicatat di lembar ini.',
   showMenteeColumn = false,
 }) => {
+  // Filter out any summary/total rows like 'NO: TOTAL'
+  const validActivities = activities.filter(a => !isTotalSummaryRow(a));
+
   return (
     <div className="w-full bg-white dark:bg-[#1e1e1e] rounded-2xl border border-slate-300 dark:border-[#2d2d2d] shadow-sm overflow-hidden transition-colors duration-200">
       {/* Top Sheet Name Banner */}
@@ -74,7 +83,7 @@ export const SpreadsheetDailyTable: React.FC<Props> = ({
           </span>
         </div>
         <span className="text-[11px] font-mono text-slate-500 dark:text-[#858585]">
-          {activities.length} Baris Data
+          {validActivities.length} Baris Data
         </span>
       </div>
 
@@ -88,7 +97,7 @@ export const SpreadsheetDailyTable: React.FC<Props> = ({
                 NO
               </th>
               {showMenteeColumn && (
-                <th className="py-2.5 px-3.5 border-r border-blue-900/50 min-w-[140px] whitespace-nowrap">
+                <th className="py-2.5 px-3.5 border-r border-blue-900/50 min-w-[150px] whitespace-nowrap">
                   Peserta
                 </th>
               )}
@@ -162,7 +171,7 @@ export const SpreadsheetDailyTable: React.FC<Props> = ({
 
           {/* Table Body with Google Sheets soft green tint (#edf7ed / #e3f2e1) & VS Code Dark theme */}
           <tbody className="divide-y divide-slate-200/80 dark:divide-[#2d2d2d] text-slate-800 dark:text-[#cccccc]">
-            {activities.length === 0 ? (
+            {validActivities.length === 0 ? (
               <tr>
                 <td
                   colSpan={editable || mentorMode ? (showMenteeColumn ? 13 : 12) : (showMenteeColumn ? 12 : 11)}
@@ -172,7 +181,7 @@ export const SpreadsheetDailyTable: React.FC<Props> = ({
                 </td>
               </tr>
             ) : (
-              activities.map((item, idx) => {
+              validActivities.map((item, idx) => {
                 const no = getDailyNo(item, idx);
                 const date = getDailyDate(item);
                 const start = getDailyStart(item);
@@ -184,6 +193,7 @@ export const SpreadsheetDailyTable: React.FC<Props> = ({
                 const targetStatus = getDailyTargetStatus(item);
                 const note = getDailyNote(item);
                 const evidence = getDailyEvidence(item);
+                const menteeName = getDailyMenteeName(item, users);
                 const isApproved = actStatus === 'Done' || item.Status === 'Disetujui';
                 const isPending = actStatus === 'On Progress' || item.Status === 'Menunggu';
 
@@ -200,7 +210,7 @@ export const SpreadsheetDailyTable: React.FC<Props> = ({
                     {/* Mentee (if shown) */}
                     {showMenteeColumn && (
                       <td className="py-2.5 px-3.5 whitespace-nowrap font-medium text-slate-900 dark:text-white border-r border-[#cfe6ce] dark:border-[#2d2d2d]">
-                        {item.Nama_Peserta || '-'}
+                        {menteeName}
                       </td>
                     )}
 
@@ -379,7 +389,7 @@ export const SpreadsheetDailyTable: React.FC<Props> = ({
                   <button
                     key={tab}
                     onClick={() => onSelectSheetTab && onSelectSheetTab(tab)}
-                    className={`px-3 py-1 rounded-t-md font-medium transition-all text-xs border cursor-pointer ${
+                    className={`px-3 py-1 rounded-t-md font-medium transition-all text-xs border cursor-pointer whitespace-nowrap ${
                       isActive
                         ? 'bg-white dark:bg-[#252526] text-[#0b4e8c] dark:text-[#3794ff] border-slate-300 dark:border-[#383838] border-b-transparent font-semibold shadow-xs'
                         : 'bg-transparent text-slate-600 dark:text-[#858585] border-transparent hover:bg-slate-200/70 dark:hover:bg-[#252526]'
@@ -393,10 +403,11 @@ export const SpreadsheetDailyTable: React.FC<Props> = ({
           </div>
 
           <div className="text-[11px] font-mono text-slate-400 dark:text-[#858585] shrink-0 hidden sm:block">
-            {activities.length} Baris Data
+            {validActivities.length} Baris Data
           </div>
         </div>
       )}
     </div>
   );
 };
+

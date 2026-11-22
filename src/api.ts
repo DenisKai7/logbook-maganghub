@@ -628,6 +628,9 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
       target["Target Status"] = tgtStatusVal;
       target.Note = noteVal;
       target["Achieved Target Evidence"] = evidenceVal;
+      target.User_ID = target.User_ID || user.userId;
+      target.Nama_Peserta = target.Nama_Peserta || user.nama;
+      target.Mentor_ID = target.Mentor_ID || user.mentorId || "";
 
       // Legacy synchronization
       target.Tanggal = dateVal;
@@ -862,6 +865,9 @@ export const api = {
       catatan?: string;
       evidence?: string;
       outputLink?: string;
+      userId?: string;
+      namaPeserta?: string;
+      mentorId?: string;
       kendala?: string;
       logId?: string;
       kategori?: string;
