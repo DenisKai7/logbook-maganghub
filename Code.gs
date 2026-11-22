@@ -16,6 +16,7 @@ const KANBAN_STATUS_OPTIONS = ['To Do', 'In Progress', 'In Review', 'Done', 'Blo
 const KANBAN_REVIEW_OPTIONS = ['Menunggu', 'Disetujui', 'Revisi'];
 
 function getLastDataRow(sheet) {
+  if (!sheet) return 0;
   var lastRow = sheet.getLastRow();
   if (lastRow <= 1) return lastRow;
   var colA = sheet.getRange(1, 1, lastRow, 1).getValues();
