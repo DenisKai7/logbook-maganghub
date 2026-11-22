@@ -14,7 +14,7 @@ const MOCK_DB_KEY = `${STORAGE_PREFIX}mock_db_v1`;
 // GANTI dengan URL /exec dari deployment Web App yang AKTIF (Deploy > Manage deployments).
 // Bisa juga diatur lewat VITE_APPS_SCRIPT_URL di .env (nilai .env menimpa default ini).
 const DEFAULT_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbzVcBBJNwRRHMfhyutoOOAd2lKyrlpMM_UBn78UW-psytnijN6gEvqc_L00ggs2VJZSHA/exec";
+  "https://script.google.com/macros/s/AKfycbzHfcocUXBUPo80LQSJwWvS64pxaaHq1ma_rD9Hiqm0guZmvaC7QuGdXA6irdad3a9Rew/exec";
 
 // Set VITE_USE_MOCK=true di .env untuk tes offline memakai localStorage (tanpa Google Apps Script).
 const USE_MOCK = String(import.meta.env.VITE_USE_MOCK || "") === "true";
@@ -49,15 +49,25 @@ export function getTodayStr(d = new Date()): string {
 }
 
 export function formatIndonesianDate(d: Date | string): string {
-  if (!d) return '';
-  const dateObj = typeof d === 'string' ? new Date(d) : d;
+  if (!d) return "";
+  const dateObj = typeof d === "string" ? new Date(d) : d;
   if (isNaN(dateObj.getTime())) {
     return String(d);
   }
-  const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
   const months = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
   ];
   const dayName = days[dateObj.getDay()];
   const dateNum = dateObj.getDate();
@@ -66,16 +76,21 @@ export function formatIndonesianDate(d: Date | string): string {
   return `${dayName}, ${dateNum} ${monthName} ${year}`;
 }
 
-export function computeDurationMinutes(startStr: string, endStr: string): number | '' {
-  if (!startStr || !endStr) return '';
+export function computeDurationMinutes(
+  startStr: string,
+  endStr: string,
+): number | "" {
+  if (!startStr || !endStr) return "";
   const parseHM = (s: string) => {
-    const m = String(s).trim().match(/^(\d{1,2}):(\d{2})/);
+    const m = String(s)
+      .trim()
+      .match(/^(\d{1,2}):(\d{2})/);
     if (!m) return null;
     return Number(m[1]) * 60 + Number(m[2]);
   };
   const startMin = parseHM(startStr);
   const endMin = parseHM(endStr);
-  if (startMin === null || endMin === null) return '';
+  if (startMin === null || endMin === null) return "";
   return endMin >= startMin ? endMin - startMin : endMin + 1440 - startMin;
 }
 
@@ -140,6 +155,13 @@ function getInitialMockDB(): MockDB {
     ],
     weeklyPlans: [
       {
+        No: 1,
+        Task: "Menyelesaikan desain antarmuka dashboard dan integrasi API autentikasi peserta.",
+        User: "Andi Pratama",
+        Priority: "High",
+        Status: "In Progress",
+        "Due Date": getCurrentIsoWeek(),
+        Review: "Menunggu",
         Plan_ID: "WP-001",
         Tanggal_Input: getTodayStr(),
         Minggu_Ke: getCurrentIsoWeek(),
@@ -148,7 +170,6 @@ function getInitialMockDB(): MockDB {
         Mentor_ID: "MNT01",
         Target_Mingguan:
           "Menyelesaikan desain antarmuka dashboard dan integrasi API autentikasi peserta.",
-        Status: "Menunggu",
         Catatan_Mentor: "",
       },
     ],
@@ -183,7 +204,8 @@ function getInitialMockDB(): MockDB {
         Start: "09:00",
         End: "10:00",
         Duration: 60,
-        Activities: "Menemui Bp Arum driver SHS yang resign & ada info akan melapor ke Wawali mengenai kelebihan jam kerja",
+        Activities:
+          "Menemui Bp Arum driver SHS yang resign & ada info akan melapor ke Wawali mengenai kelebihan jam kerja",
         "Activities Status": "Done",
         "Target Desc": "",
         "Target Status": "",
@@ -195,7 +217,8 @@ function getInitialMockDB(): MockDB {
         Nama_Peserta: "Andi Pratama",
         Mentor_ID: "MNT01",
         Kategori: "Mengerjakan Tugas",
-        Deskripsi_Aktivitas: "Menemui Bp Arum driver SHS yang resign & ada info akan melapor ke Wawali mengenai kelebihan jam kerja",
+        Deskripsi_Aktivitas:
+          "Menemui Bp Arum driver SHS yang resign & ada info akan melapor ke Wawali mengenai kelebihan jam kerja",
         Output_Link: "",
         Kendala: "",
         Status: "Disetujui",
@@ -207,7 +230,8 @@ function getInitialMockDB(): MockDB {
         Start: "10:00",
         End: "14:00",
         Duration: 240,
-        Activities: "Ke Disnakertrans Jatim memenuhi panggilan FU laporan a.n Adnri KCI",
+        Activities:
+          "Ke Disnakertrans Jatim memenuhi panggilan FU laporan a.n Adnri KCI",
         "Activities Status": "Done",
         "Target Desc": "",
         "Target Status": "",
@@ -219,7 +243,8 @@ function getInitialMockDB(): MockDB {
         Nama_Peserta: "Andi Pratama",
         Mentor_ID: "MNT01",
         Kategori: "Mengerjakan Tugas",
-        Deskripsi_Aktivitas: "Ke Disnakertrans Jatim memenuhi panggilan FU laporan a.n Adnri KCI",
+        Deskripsi_Aktivitas:
+          "Ke Disnakertrans Jatim memenuhi panggilan FU laporan a.n Adnri KCI",
         Output_Link: "",
         Kendala: "",
         Status: "Disetujui",
@@ -231,7 +256,8 @@ function getInitialMockDB(): MockDB {
         Start: "14:00",
         End: "17:00",
         Duration: 180,
-        Activities: "Mengawal pengusulan program magang semua cabang & Melakukan pengusulan untuk East 1 (SIG & GSU)",
+        Activities:
+          "Mengawal pengusulan program magang semua cabang & Melakukan pengusulan untuk East 1 (SIG & GSU)",
         "Activities Status": "Done",
         "Target Desc": "",
         "Target Status": "",
@@ -243,7 +269,8 @@ function getInitialMockDB(): MockDB {
         Nama_Peserta: "Andi Pratama",
         Mentor_ID: "MNT01",
         Kategori: "Mengerjakan Tugas",
-        Deskripsi_Aktivitas: "Mengawal pengusulan program magang semua cabang & Melakukan pengusulan untuk East 1 (SIG & GSU)",
+        Deskripsi_Aktivitas:
+          "Mengawal pengusulan program magang semua cabang & Melakukan pengusulan untuk East 1 (SIG & GSU)",
         Output_Link: "",
         Kendala: "",
         Status: "Disetujui",
@@ -255,7 +282,8 @@ function getInitialMockDB(): MockDB {
         Start: "18:00",
         End: "21:00",
         Duration: 180,
-        Activities: "BC dan info terkait penerimaan magang dan persiapan onboarding ke peserta maganghub",
+        Activities:
+          "BC dan info terkait penerimaan magang dan persiapan onboarding ke peserta maganghub",
         "Activities Status": "Done",
         "Target Desc": "",
         "Target Status": "",
@@ -267,7 +295,8 @@ function getInitialMockDB(): MockDB {
         Nama_Peserta: "Andi Pratama",
         Mentor_ID: "MNT01",
         Kategori: "Dokumentasi & Laporan",
-        Deskripsi_Aktivitas: "BC dan info terkait penerimaan magang dan persiapan onboarding ke peserta maganghub",
+        Deskripsi_Aktivitas:
+          "BC dan info terkait penerimaan magang dan persiapan onboarding ke peserta maganghub",
         Output_Link: "",
         Kendala: "",
         Status: "Disetujui",
@@ -506,69 +535,79 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
     return { status: "error", message: "Role tidak valid." };
   }
 
-  if (action === "saveWeeklyPlan") {
-    if (user.role !== "Peserta") {
-      return {
-        status: "error",
-        message: "Hanya Peserta yang dapat mengisi Weekly Plan.",
-      };
-    }
+  if (action === "saveKanban" || action === "saveWeeklyPlan") {
     const payload = req.data || {};
-    if (!payload.mingguKe || !payload.targetMingguan) {
+    const taskVal = String(payload.task || payload.targetMingguan || "").trim();
+    if (!taskVal) {
       return {
         status: "error",
-        message: "Minggu dan target mingguan wajib diisi.",
+        message: "Task wajib diisi.",
       };
     }
 
-    if (payload.planId) {
-      const target = db.weeklyPlans.find((w) => w.Plan_ID === payload.planId);
-      if (!target)
-        return {
-          status: "error",
-          message: "Data Weekly Plan tidak ditemukan.",
-        };
-      if (target.User_ID !== user.userId)
-        return { status: "error", message: "Akses ditolak." };
-      if (target.Status === "Disetujui")
-        return {
-          status: "error",
-          message: "Plan yang sudah disetujui tidak bisa diedit.",
-        };
+    const priorityVal = String(payload.priority || "Medium").trim();
+    const statusVal = String(payload.status || "To Do").trim();
+    const dueDateVal = String(payload.dueDate || payload.mingguKe || "").trim();
+    const startVal = String(payload.start || "").trim();
+    const endVal = String(payload.end || "").trim();
+    const evidenceVal = String(payload.evidence || payload.outputLink || "").trim();
+    const reviewVal = String(payload.review || payload.catatan || "Menunggu").trim();
 
-      target.Tanggal_Input = getTodayStr();
-      target.Minggu_Ke = String(payload.mingguKe).trim();
-      target.Target_Mingguan = String(payload.targetMingguan).trim();
-      target.Status = "Menunggu";
-      saveMockDB(db);
-      return { status: "success", message: "Weekly Plan berhasil diperbarui." };
+    const targetId = String(payload.no || payload.planId || payload.id || "").trim();
+    if (targetId) {
+      const target = db.weeklyPlans.find(
+        (w) => String(w.No) === targetId || w.Plan_ID === targetId
+      );
+      if (target) {
+        if (target.User_ID && target.User_ID !== user.userId && user.role !== "HR") {
+          return { status: "error", message: "Akses ditolak." };
+        }
+        target.Task = taskVal;
+        target.Target_Mingguan = taskVal;
+        target.Priority = priorityVal;
+        target.Status = statusVal;
+        target["Due Date"] = dueDateVal;
+        target.dueDate = dueDateVal;
+        target.Start = startVal;
+        target.End = endVal;
+        target.Evidence = evidenceVal;
+        target.Review = reviewVal;
+        saveMockDB(db);
+        return { status: "success", message: "Kanban berhasil diperbarui." };
+      }
     }
 
-    const dup = db.weeklyPlans.find(
-      (w) =>
-        w.User_ID === user.userId &&
-        w.Minggu_Ke === String(payload.mingguKe).trim(),
-    );
-    if (dup) {
-      return {
-        status: "error",
-        message: `Weekly Plan untuk ${payload.mingguKe} sudah ada. Silakan edit data yang tersedia.`,
-      };
-    }
-    const newPlan: WeeklyPlan = {
-      Plan_ID: "WP-" + Date.now().toString().slice(-8),
-      Tanggal_Input: getTodayStr(),
-      Minggu_Ke: String(payload.mingguKe).trim(),
+    const existingNos = db.weeklyPlans
+      .map((w) => Number(w.No))
+      .filter((n) => !isNaN(n));
+    const nextNo = existingNos.length > 0 ? Math.max(...existingNos) + 1 : 1;
+
+    const newKanban: any = {
+      No: nextNo,
+      Task: taskVal,
+      User: user.nama,
+      Priority: priorityVal,
+      Status: statusVal,
+      "Due Date": dueDateVal,
+      dueDate: dueDateVal,
+      Start: startVal,
+      End: endVal,
+      Evidence: evidenceVal,
+      Review: reviewVal,
       User_ID: user.userId,
-      Nama_Peserta: user.nama,
       Mentor_ID: user.mentorId || "",
-      Target_Mingguan: String(payload.targetMingguan).trim(),
-      Status: "Menunggu",
+
+      // Compatibility
+      Plan_ID: "WP-" + String(nextNo).padStart(3, "0"),
+      Tanggal_Input: getTodayStr(),
+      Minggu_Ke: dueDateVal,
+      Nama_Peserta: user.nama,
+      Target_Mingguan: taskVal,
       Catatan_Mentor: "",
     };
-    db.weeklyPlans.push(newPlan);
+    db.weeklyPlans.push(newKanban);
     saveMockDB(db);
-    return { status: "success", message: "Weekly Plan berhasil disimpan." };
+    return { status: "success", message: "Kanban berhasil disimpan." };
   }
 
   if (action === "saveDailyActivity") {
@@ -579,10 +618,14 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
       };
     }
     const payload = req.data || {};
-    const dateVal = String(payload.date || payload.tanggal || getTodayStr()).trim();
-    const startVal = String(payload.start || '').trim();
-    const endVal = String(payload.end || '').trim();
-    const activitiesVal = String(payload.activities || payload.deskripsi || '').trim();
+    const dateVal = String(
+      payload.date || payload.tanggal || getTodayStr(),
+    ).trim();
+    const startVal = String(payload.start || "").trim();
+    const endVal = String(payload.end || "").trim();
+    const activitiesVal = String(
+      payload.activities || payload.deskripsi || "",
+    ).trim();
 
     if (!dateVal || !activitiesVal) {
       return {
@@ -591,30 +634,41 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
       };
     }
 
-    const durationVal = (payload.duration !== undefined && payload.duration !== '')
-      ? Number(payload.duration)
-      : computeDurationMinutes(startVal, endVal);
+    const durationVal =
+      payload.duration !== undefined && payload.duration !== ""
+        ? Number(payload.duration)
+        : computeDurationMinutes(startVal, endVal);
 
-    const actStatusVal = String(payload.activitiesStatus || payload.status || 'Done').trim();
-    const tgtStatusVal = String(payload.targetStatus || '').trim();
-    const tgtDescVal = String(payload.targetDesc || '').trim();
-    const noteVal = String(payload.note || payload.catatan || payload.kendala || '').trim();
-    const evidenceVal = String(payload.evidence || payload.outputLink || '').trim();
+    const actStatusVal = String(
+      payload.activitiesStatus || payload.status || "Done",
+    ).trim();
+    const tgtStatusVal = String(payload.targetStatus || "").trim();
+    const tgtDescVal = String(payload.targetDesc || "").trim();
+    const noteVal = String(
+      payload.note || payload.catatan || payload.kendala || "",
+    ).trim();
+    const evidenceVal = String(
+      payload.evidence || payload.outputLink || "",
+    ).trim();
 
     // Check if updating existing
-    const searchNo = payload.no ? String(payload.no).trim() : '';
-    const searchId = payload.logId ? String(payload.logId).trim() : '';
+    const searchNo = payload.no ? String(payload.no).trim() : "";
+    const searchId = payload.logId ? String(payload.logId).trim() : "";
 
-    const target = db.dailyActivities.find((d) =>
-      (searchNo && String(d.No).trim() === searchNo) ||
-      (searchId && (d.Log_ID === searchId || String(d.No) === searchId))
+    const target = db.dailyActivities.find(
+      (d) =>
+        (searchNo && String(d.No).trim() === searchNo) ||
+        (searchId && (d.Log_ID === searchId || String(d.No) === searchId)),
     );
 
     if (target) {
       if (target.User_ID && target.User_ID !== user.userId) {
         return { status: "error", message: "Akses ditolak." };
       }
-      if (target.Status === "Disetujui" || target["Activities Status"] === "Done") {
+      if (
+        target.Status === "Disetujui" ||
+        target["Activities Status"] === "Done"
+      ) {
         // Allow updating if not strictly locked
       }
 
@@ -648,8 +702,8 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
 
     // Insert new item
     const existingNos = db.dailyActivities
-      .map(d => Number(d.No))
-      .filter(n => !isNaN(n));
+      .map((d) => Number(d.No))
+      .filter((n) => !isNaN(n));
     const nextNo = existingNos.length > 0 ? Math.max(...existingNos) + 1 : 1;
 
     const newAct: DailyActivity = {
@@ -665,7 +719,7 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
       Note: noteVal,
       "Achieved Target Evidence": evidenceVal,
 
-      Log_ID: "DA-" + String(nextNo).padStart(3, '0'),
+      Log_ID: "DA-" + String(nextNo).padStart(3, "0"),
       Tanggal: dateVal,
       User_ID: user.userId,
       Nama_Peserta: user.nama,
@@ -839,11 +893,33 @@ export const api = {
     sendRequest<{ user: User }>({ action: "login", email, pin }),
   getData: <T>(email: string, pin: string) =>
     sendRequest<T>({ action: "getData", email, pin }),
+  saveKanban: (
+    email: string,
+    pin: string,
+    data: {
+      no?: string | number;
+      task: string;
+      user?: string;
+      priority?: string;
+      status?: string;
+      dueDate?: string;
+      start?: string;
+      end?: string;
+      evidence?: string;
+      review?: string;
+      userId?: string;
+      mentorId?: string;
+      id?: string;
+      planId?: string;
+      targetMingguan?: string;
+      mingguKe?: string;
+    },
+  ) => sendRequest({ action: "saveKanban", email, pin, data }),
   saveWeeklyPlan: (
     email: string,
     pin: string,
-    data: { mingguKe: string; targetMingguan: string; planId?: string },
-  ) => sendRequest({ action: "saveWeeklyPlan", email, pin, data }),
+    data: any,
+  ) => sendRequest({ action: "saveKanban", email, pin, data }),
   saveDailyActivity: (
     email: string,
     pin: string,

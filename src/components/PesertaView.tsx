@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   User,
   PesertaData,
   DailyActivity,
-  WeeklyPlan,
+  KanbanItem,
+  KANBAN_PRIORITY_OPTIONS,
+  KANBAN_STATUS_OPTIONS,
+  KanbanPriority,
+  KanbanStatus,
   ACTIVITY_STATUS_OPTIONS,
   TARGET_STATUS_OPTIONS,
   getDailyDate,
@@ -16,12 +20,19 @@ import {
   getDailyTargetStatus,
   getDailyNote,
   getDailyEvidence,
-  getDailyNo
+  getDailyNo,
+  getKanbanTask,
+  getKanbanPriority,
+  getKanbanStatus,
+  getKanbanDueDate,
+  getKanbanReview,
+  getKanbanEvidence
 } from '../types';
 import { api, formatIndonesianDate, computeDurationMinutes } from '../api';
 import { StatusBadge } from './StatusBadge';
 import { Modal } from './Modal';
 import { SpreadsheetDailyTable } from './SpreadsheetDailyTable';
+import { KanbanBoard } from './KanbanBoard';
 import {
   Calendar,
   Clock,
@@ -36,7 +47,8 @@ import {
   Sparkles,
   BookOpen,
   Trash2,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Layers
 } from 'lucide-react';
 
 interface Props {
@@ -47,7 +59,7 @@ interface Props {
 }
 
 export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
-  const [activeTab, setActiveTab] = useState<'daily' | 'weekly'>('daily');
+  const [activeTab, setActiveTab] = useState<'daily' | 'kanban'>('daily');
 
   // Daily Activity Modal state matching the Google Sheet columns
   const [dailyModalOpen, setDailyModalOpen] = useState(false);
@@ -67,15 +79,20 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
   const [dailyLoading, setDailyLoading] = useState(false);
   const [dailyError, setDailyError] = useState('');
 
-  // Weekly Plan Modal state
-  const [weeklyModalOpen, setWeeklyModalOpen] = useState(false);
-  const [editingWeekly, setEditingWeekly] = useState<WeeklyPlan | null>(null);
-  const [weeklyForm, setWeeklyForm] = useState({
-    mingguKe: data.currentWeek,
-    targetMingguan: ''
+  // Kanban Modal state
+  const [kanbanModalOpen, setKanbanModalOpen] = useState(false);
+  const [editingKanban, setEditingKanban] = useState<KanbanItem | null>(null);
+  const [kanbanForm, setKanbanForm] = useState({
+    task: '',
+    priority: 'Medium' as KanbanPriority,
+    status: 'To Do' as KanbanStatus,
+    dueDate: data.today,
+    start: '08:00',
+    end: '17:00',
+    evidence: '',
   });
-  const [weeklyLoading, setWeeklyLoading] = useState(false);
-  const [weeklyError, setWeeklyError] = useState('');
+  const [kanbanLoading, setKanbanLoading] = useState(false);
+  const [kanbanError, setKanbanError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Auto-calculate duration whenever start or end changes
@@ -91,14 +108,14 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
     setDailyForm(updated);
   };
 
-  const handleDeleteItem = async (id: string, type: 'daily' | 'weekly', label: string) => {
+  const handleDeleteItem = async (id: string, type: 'daily' | 'kanban' | 'weekly', label: string) => {
     if (!window.confirm(`Hapus ${label}? Tindakan ini tidak dapat dibatalkan.`)) {
       return;
     }
 
     setDeletingId(id);
     try {
-      const res = await api.deleteItem(user.email, pin, { id, type });
+      const res = await api.deleteItem(user.email, pin, { id, type: type as any });
       if (res.status === 'success') {
         onRefresh();
       } else {
@@ -124,6 +141,10 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
     const dur = Number(d.Duration);
     return isNaN(dur) ? acc : acc + dur;
   }, 0);
+
+  // Kanban Items list (using kanbanItems or weeklyPlans)
+  const currentKanbanList: KanbanItem[] = data.kanbanItems || data.weeklyPlans || [];
+  const completedKanban = currentKanbanList.filter(k => getKanbanStatus(k) === 'Done').length;
 
   // Open Daily Modal
   const openNewDaily = () => {
@@ -216,53 +237,104 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
     }
   };
 
-  // Open Weekly Modal
-  const openNewWeekly = () => {
-    setEditingWeekly(null);
-    setWeeklyForm({
-      mingguKe: data.currentWeek,
-      targetMingguan: ''
+  // Kanban Handlers
+  const openNewKanban = () => {
+    setEditingKanban(null);
+    setKanbanForm({
+      task: '',
+      priority: 'Medium',
+      status: 'To Do',
+      dueDate: data.today,
+      start: '08:00',
+      end: '17:00',
+      evidence: '',
     });
-    setWeeklyError('');
-    setWeeklyModalOpen(true);
+    setKanbanError('');
+    setKanbanModalOpen(true);
   };
 
-  const openEditWeekly = (item: WeeklyPlan) => {
-    setEditingWeekly(item);
-    setWeeklyForm({
-      mingguKe: item.Minggu_Ke,
-      targetMingguan: item.Target_Mingguan
+  const openEditKanban = (item: KanbanItem) => {
+    setEditingKanban(item);
+    setKanbanForm({
+      task: getKanbanTask(item),
+      priority: getKanbanPriority(item),
+      status: getKanbanStatus(item),
+      dueDate: getKanbanDueDate(item) !== '-' ? getKanbanDueDate(item) : data.today,
+      start: item.Start || '08:00',
+      end: item.End || '17:00',
+      evidence: getKanbanEvidence(item),
     });
-    setWeeklyError('');
-    setWeeklyModalOpen(true);
+    setKanbanError('');
+    setKanbanModalOpen(true);
   };
 
-  const handleSaveWeekly = async (e: React.FormEvent) => {
+  const handleQuickStatusChange = async (item: KanbanItem, newStatus: KanbanStatus) => {
+    try {
+      const res = await api.saveKanban(user.email, pin, {
+        no: item.No || item.Plan_ID,
+        id: String(item.No || item.Plan_ID),
+        task: getKanbanTask(item),
+        user: user.nama,
+        userId: user.userId,
+        mentorId: user.mentorId,
+        priority: getKanbanPriority(item),
+        status: newStatus,
+        dueDate: getKanbanDueDate(item),
+        start: item.Start || '',
+        end: item.End || '',
+        evidence: getKanbanEvidence(item),
+        review: getKanbanReview(item),
+        targetMingguan: getKanbanTask(item),
+        mingguKe: getKanbanDueDate(item),
+      });
+      if (res.status === 'success') {
+        onRefresh();
+      } else {
+        alert(res.message || 'Gagal mengubah status Kanban.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Terjadi kesalahan sistem.');
+    }
+  };
+
+  const handleSaveKanban = async (e: React.FormEvent) => {
     e.preventDefault();
-    setWeeklyError('');
-    if (!weeklyForm.mingguKe || !weeklyForm.targetMingguan.trim()) {
-      setWeeklyError('Minggu ke dan target mingguan wajib diisi.');
+    setKanbanError('');
+    if (!kanbanForm.task.trim()) {
+      setKanbanError('Task wajib diisi.');
       return;
     }
 
-    setWeeklyLoading(true);
+    setKanbanLoading(true);
     try {
-      const res = await api.saveWeeklyPlan(user.email, pin, {
-        mingguKe: weeklyForm.mingguKe.trim(),
-        targetMingguan: weeklyForm.targetMingguan.trim(),
-        planId: editingWeekly?.Plan_ID
+      const res = await api.saveKanban(user.email, pin, {
+        no: editingKanban ? (editingKanban.No || editingKanban.Plan_ID) : undefined,
+        id: editingKanban ? String(editingKanban.No || editingKanban.Plan_ID) : undefined,
+        task: kanbanForm.task.trim(),
+        user: user.nama,
+        userId: user.userId,
+        mentorId: user.mentorId,
+        priority: kanbanForm.priority,
+        status: kanbanForm.status,
+        dueDate: kanbanForm.dueDate,
+        start: kanbanForm.start,
+        end: kanbanForm.end,
+        evidence: kanbanForm.evidence.trim(),
+        review: editingKanban ? getKanbanReview(editingKanban) : 'Menunggu',
+        targetMingguan: kanbanForm.task.trim(),
+        mingguKe: kanbanForm.dueDate,
       });
 
       if (res.status === 'success') {
-        setWeeklyModalOpen(false);
+        setKanbanModalOpen(false);
         onRefresh();
       } else {
-        setWeeklyError(res.message || 'Gagal menyimpan rencana mingguan.');
+        setKanbanError(res.message || 'Gagal menyimpan task Kanban.');
       }
     } catch (err: any) {
-      setWeeklyError(err.message || 'Terjadi kesalahan sistem.');
+      setKanbanError(err.message || 'Terjadi kesalahan sistem.');
     } finally {
-      setWeeklyLoading(false);
+      setKanbanLoading(false);
     }
   };
 
@@ -282,10 +354,12 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight mt-1">
-              Personal Daily Activities
+              {activeTab === 'daily' ? 'Personal Daily Activities' : 'Kanban Task Management'}
             </h1>
             <p className="text-slate-500 dark:text-[#858585] text-xs sm:text-sm mt-1 max-w-xl leading-relaxed">
-              Pencatatan lembar aktivitas harian berbasis format resmi spreadsheet PT. Shelter Indonesia Gemilang.
+              {activeTab === 'daily'
+                ? 'Lembar catatan aktivitas harian resmi PT. Shelter Indonesia Gemilang.'
+                : 'Papan manajemen tugas dan proyek magang berbasis Kanban board interaktif.'}
             </p>
           </div>
 
@@ -300,11 +374,11 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
               </button>
             ) : (
               <button
-                onClick={openNewWeekly}
+                onClick={openNewKanban}
                 className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#0b4e8c] hover:bg-[#083b6b] dark:bg-[#0e639c] dark:hover:bg-[#1177bb] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                Target Minggu Baru
+                Tambah Task Kanban
               </button>
             )}
           </div>
@@ -323,12 +397,14 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
           </div>
 
           <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-[#1b3424] border border-emerald-200/50 dark:border-[#2e6040]">
-            <span className="text-[11px] font-semibold text-emerald-800 dark:text-[#4ec9b0] uppercase tracking-wider block">Status 'Done'</span>
-            <span className="text-base font-semibold text-emerald-900 dark:text-[#4ec9b0] font-mono mt-0.5 block">{approvedDaily}</span>
+            <span className="text-[11px] font-semibold text-emerald-800 dark:text-[#4ec9b0] uppercase tracking-wider block">Kanban Done</span>
+            <span className="text-base font-semibold text-emerald-900 dark:text-[#4ec9b0] font-mono mt-0.5 block">
+              {completedKanban} / {currentKanbanList.length}
+            </span>
           </div>
 
           <div className="p-3 rounded-xl bg-amber-50/60 dark:bg-[#342c15] border border-amber-200/50 dark:border-[#5a4d22]">
-            <span className="text-[11px] font-semibold text-amber-800 dark:text-[#dcdcaa] uppercase tracking-wider block">Total Durasi</span>
+            <span className="text-[11px] font-semibold text-amber-800 dark:text-[#dcdcaa] uppercase tracking-wider block">Total Durasi Log</span>
             <span className="text-base font-semibold text-slate-900 dark:text-white font-mono mt-0.5 block">
               {totalMinutes} <span className="text-xs font-normal text-slate-400 dark:text-[#858585]">menit ({(totalMinutes / 60).toFixed(1)} jam)</span>
             </span>
@@ -351,15 +427,15 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
             <span>Lembar Daily Activities ({data.dailyActivities.length})</span>
           </button>
           <button
-            onClick={() => setActiveTab('weekly')}
+            onClick={() => setActiveTab('kanban')}
             className={`pb-3 text-sm font-semibold transition-colors relative cursor-pointer flex items-center gap-2 ${
-              activeTab === 'weekly'
+              activeTab === 'kanban'
                 ? 'text-[#0b4e8c] dark:text-[#3794ff] border-b-2 border-[#0b4e8c] dark:border-[#3794ff]'
                 : 'text-slate-500 dark:text-[#858585] hover:text-slate-800 dark:hover:text-[#cccccc]'
             }`}
           >
-            <Target className="w-4 h-4" />
-            <span>Rencana Mingguan ({data.weeklyPlans.length})</span>
+            <Layers className="w-4 h-4" />
+            <span>Kanban ({currentKanbanList.length})</span>
           </button>
         </nav>
       </div>
@@ -387,91 +463,30 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
         </div>
       )}
 
-      {/* TAB CONTENT: WEEKLY PLANS */}
-      {activeTab === 'weekly' && (
+      {/* TAB CONTENT: KANBAN BOARD & SPREADSHEET TABLE */}
+      {activeTab === 'kanban' && (
         <div className="space-y-4 animate-fade-in-up">
-          {data.weeklyPlans.length === 0 ? (
-            <div className="text-center py-14 bg-white dark:bg-[#252526] rounded-2xl border border-dashed border-slate-300 dark:border-[#383838] p-8">
-              <Target className="w-8 h-8 text-slate-400 dark:text-[#858585] mx-auto mb-2" />
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-white">Belum ada target mingguan</h3>
-              <p className="text-xs text-slate-500 dark:text-[#858585] max-w-sm mx-auto mt-1 mb-4">
-                Tetapkan target mingguan agar kegiatan harianmu terarah dan selaras dengan ekspektasi divisi.
-              </p>
-              <button
-                onClick={openNewWeekly}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#0b4e8c] hover:bg-[#083b6b] dark:bg-[#0e639c] dark:hover:bg-[#1177bb] text-white text-xs font-semibold rounded-lg cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Buat Target Minggu Ini
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {data.weeklyPlans.map(item => {
-                const isApproved = item.Status === 'Disetujui';
-                const hasFeedback = Boolean(item.Catatan_Mentor && item.Catatan_Mentor.trim());
-
-                return (
-                  <article
-                    key={item.Plan_ID}
-                    className="bg-white dark:bg-[#252526] rounded-2xl border border-slate-200/90 dark:border-[#2d2d2d] p-5 shadow-xs hover:border-[#0b4e8c]/30 dark:hover:border-[#383838] transition-colors"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-semibold text-[#0b4e8c] dark:text-[#9cdcfe] bg-blue-50 dark:bg-[#1e2733] border border-blue-200/60 dark:border-[#264f78] px-2.5 py-1 rounded">
-                          {item.Minggu_Ke}
-                        </span>
-                        <span className="text-xs text-slate-400 dark:text-[#858585] font-mono">Diinput: {item.Tanggal_Input}</span>
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        <StatusBadge status={item.Status} />
-                        {/* Edit: Hanya jika belum Disetujui (Menunggu atau Revisi) */}
-                        {!isApproved && (
-                          <button
-                            onClick={() => openEditWeekly(item)}
-                            className="p-1.5 text-slate-400 hover:text-slate-700 dark:text-[#858585] dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-[#1e1e1e] transition-colors cursor-pointer"
-                            title="Edit rencana mingguan"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        {/* Hapus: HANYA jika status Menunggu */}
-                        {item.Status === 'Menunggu' && (
-                          <button
-                            onClick={() => handleDeleteItem(item.Plan_ID, 'weekly', `rencana minggu ${item.Minggu_Ke}`)}
-                            disabled={deletingId === item.Plan_ID}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 dark:text-[#858585] dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-[#341b1d] transition-colors cursor-pointer disabled:opacity-50"
-                            title="Hapus rencana mingguan"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <p className="text-sm text-slate-800 dark:text-[#cccccc] whitespace-pre-line leading-relaxed">
-                      {item.Target_Mingguan}
-                    </p>
-
-                    {hasFeedback && (
-                      <div className="mt-3 p-3 rounded-xl bg-blue-50/50 dark:bg-[#1e2733] border border-blue-200/60 dark:border-[#264f78] text-xs">
-                        <div className="flex items-center gap-1.5 text-[#0b4e8c] dark:text-[#9cdcfe] font-semibold mb-1">
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          <span>Catatan Mentor:</span>
-                        </div>
-                        <p className="text-slate-700 dark:text-[#cccccc] italic pl-5 leading-relaxed">{item.Catatan_Mentor}</p>
-                      </div>
-                    )}
-                  </article>
-                );
-              })}
-            </div>
-          )}
+          <KanbanBoard
+            items={currentKanbanList}
+            currentUser={user}
+            editable={true}
+            onEdit={openEditKanban}
+            onDelete={(item) =>
+              handleDeleteItem(
+                String(item.Plan_ID || item.No),
+                'kanban',
+                `task "${getKanbanTask(item)}"`
+              )
+            }
+            deletingId={deletingId}
+            onStatusChange={handleQuickStatusChange}
+            onAddNew={openNewKanban}
+            emptyMessage="Belum ada task di lembar Kanban Anda."
+          />
         </div>
       )}
 
-      {/* DAILY ACTIVITY MODAL (PERSONAL DAILY ACTIVITIES SPECIFICATION) */}
+      {/* DAILY ACTIVITY MODAL */}
       <Modal
         isOpen={dailyModalOpen}
         onClose={() => setDailyModalOpen(false)}
@@ -665,60 +680,135 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
         </form>
       </Modal>
 
-      {/* WEEKLY PLAN MODAL */}
+      {/* KANBAN TASK MODAL */}
       <Modal
-        isOpen={weeklyModalOpen}
-        onClose={() => setWeeklyModalOpen(false)}
-        title={editingWeekly ? 'Edit Rencana Mingguan' : 'Buat Rencana Mingguan'}
-        subtitle="Tentukan target capaian utama untuk minggu ini"
+        isOpen={kanbanModalOpen}
+        onClose={() => setKanbanModalOpen(false)}
+        title={editingKanban ? 'Edit Task Kanban' : 'Buat Task Kanban Baru'}
+        subtitle="Sesuai lembar Kanban PT. Shelter Indonesia Gemilang"
       >
-        <form onSubmit={handleSaveWeekly} className="space-y-4">
-          {weeklyError && (
+        <form onSubmit={handleSaveKanban} className="space-y-4">
+          {kanbanError && (
             <div className="p-3 rounded-xl bg-rose-50 dark:bg-[#341b1d] border border-rose-200 dark:border-[#5c2427] text-xs text-rose-800 dark:text-[#f48771]">
-              {weeklyError}
+              {kanbanError}
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">Minggu Ke (Format ISO)</label>
-            <input
-              type="text"
+            <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">
+              Task <span className="text-rose-500">*</span>
+            </label>
+            <textarea
               required
-              placeholder="Contoh: 2026-W47"
-              value={weeklyForm.mingguKe}
-              onChange={e => setWeeklyForm({ ...weeklyForm, mingguKe: e.target.value })}
-              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/50 dark:bg-[#1e1e1e] text-slate-900 dark:text-white font-mono"
+              rows={3}
+              placeholder="Contoh: Menyelesaikan arsitektur dashboard peserta dan integrasi API login."
+              value={kanbanForm.task}
+              onChange={e => setKanbanForm({ ...kanbanForm, task: e.target.value })}
+              className="w-full p-3 text-xs sm:text-sm rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/30 dark:bg-[#1e1e1e] text-slate-900 dark:text-white leading-relaxed"
             />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">
+                Priority
+              </label>
+              <select
+                value={kanbanForm.priority}
+                onChange={e => setKanbanForm({ ...kanbanForm, priority: e.target.value as KanbanPriority })}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-white dark:bg-[#1e1e1e] text-slate-900 dark:text-white font-semibold"
+              >
+                {KANBAN_PRIORITY_OPTIONS.map(opt => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">
+                Status
+              </label>
+              <select
+                value={kanbanForm.status}
+                onChange={e => setKanbanForm({ ...kanbanForm, status: e.target.value as KanbanStatus })}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-white dark:bg-[#1e1e1e] text-slate-900 dark:text-white font-semibold"
+              >
+                {KANBAN_STATUS_OPTIONS.map(opt => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">
+                Due Date
+              </label>
+              <input
+                type="date"
+                value={kanbanForm.dueDate.includes('-') && kanbanForm.dueDate.length === 10 ? kanbanForm.dueDate : data.today}
+                onChange={e => setKanbanForm({ ...kanbanForm, dueDate: e.target.value })}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/50 dark:bg-[#1e1e1e] text-slate-900 dark:text-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">
+                Start Time
+              </label>
+              <input
+                type="time"
+                value={kanbanForm.start}
+                onChange={e => setKanbanForm({ ...kanbanForm, start: e.target.value })}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/50 dark:bg-[#1e1e1e] text-slate-900 dark:text-white font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">
+                End Time
+              </label>
+              <input
+                type="time"
+                value={kanbanForm.end}
+                onChange={e => setKanbanForm({ ...kanbanForm, end: e.target.value })}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/50 dark:bg-[#1e1e1e] text-slate-900 dark:text-white font-mono"
+              />
+            </div>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">
-              Target Mingguan <span className="text-rose-500">*</span>
+              Evidence <span className="text-slate-400 dark:text-[#858585] font-normal">(tautan bukti / hasil)</span>
             </label>
-            <textarea
-              required
-              rows={4}
-              placeholder="Contoh: Menyelesaikan arsitektur state management dan integrasi API review mentor."
-              value={weeklyForm.targetMingguan}
-              onChange={e => setWeeklyForm({ ...weeklyForm, targetMingguan: e.target.value })}
-              className="w-full p-3 text-xs sm:text-sm rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/30 dark:bg-[#1e1e1e] text-slate-900 dark:text-white leading-relaxed"
+            <input
+              type="text"
+              placeholder="https://drive.google.com/... atau link dokumen"
+              value={kanbanForm.evidence}
+              onChange={e => setKanbanForm({ ...kanbanForm, evidence: e.target.value })}
+              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/50 dark:bg-[#1e1e1e] text-slate-900 dark:text-white font-mono"
             />
           </div>
 
           <div className="pt-2 flex items-center justify-end gap-2">
             <button
               type="button"
-              onClick={() => setWeeklyModalOpen(false)}
+              onClick={() => setKanbanModalOpen(false)}
               className="px-3 py-2 text-xs font-medium text-slate-600 dark:text-[#858585] hover:text-slate-900 dark:hover:text-white cursor-pointer"
             >
               Batal
             </button>
             <button
               type="submit"
-              disabled={weeklyLoading}
+              disabled={kanbanLoading}
               className="px-4 py-2 bg-[#0b4e8c] hover:bg-[#083b6b] dark:bg-[#0e639c] dark:hover:bg-[#1177bb] disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer"
             >
-              {weeklyLoading ? 'Menyimpan...' : editingWeekly ? 'Simpan Perubahan' : 'Simpan Target'}
+              {kanbanLoading ? 'Menyimpan...' : editingKanban ? 'Simpan Perubahan' : 'Simpan Task Kanban'}
             </button>
           </div>
         </form>

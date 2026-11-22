@@ -4,6 +4,7 @@ import {
   HRData,
   DailyActivity,
   WeeklyPlan,
+  KanbanItem,
   ItemStatus,
   getDailyNo,
   getDailyDate,
@@ -16,11 +17,20 @@ import {
   getDailyTargetStatus,
   getDailyNote,
   getDailyEvidence,
+  getKanbanNo,
+  getKanbanTask,
+  getKanbanUser,
+  getKanbanPriority,
+  getKanbanStatus,
+  getKanbanDueDate,
+  getKanbanReview,
+  getKanbanEvidence
 } from '../types';
 import { api } from '../api';
 import { StatusBadge } from './StatusBadge';
 import { Modal } from './Modal';
 import { SpreadsheetDailyTable } from './SpreadsheetDailyTable';
+import { KanbanBoard } from './KanbanBoard';
 import {
   Users,
   Download,
@@ -184,8 +194,8 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
       const menteeIds = mentees.map(i => i.userId);
       const assignedLogs = data.dailyActivities.filter(d => d.User_ID ? menteeIds.includes(d.User_ID) : false);
       const pendingLogs = assignedLogs.filter(d => d.Status === 'Menunggu');
-      const assignedWeekly = data.weeklyPlans.filter(w => menteeIds.includes(w.User_ID));
-      const pendingWeekly = assignedWeekly.filter(w => w.Status === 'Menunggu');
+      const assignedWeekly = (data.kanbanItems || data.weeklyPlans).filter(w => w.User_ID ? menteeIds.includes(w.User_ID) : false);
+      const pendingWeekly = assignedWeekly.filter(w => getKanbanReview(w) === 'Menunggu');
 
       return {
         mentor: m,
@@ -235,22 +245,23 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
     });
   }, [data.dailyActivities, data.users, selectedDivision, selectedStatus, selectedCategory, searchQuery]);
 
-  // Filtered weekly plans
+  // Filtered Kanban tasks
   const filteredWeekly = useMemo(() => {
-    return data.weeklyPlans.filter(w => {
+    const list = data.kanbanItems || data.weeklyPlans || [];
+    return list.filter(w => {
       const userMatch = data.users.find(u => u.userId === w.User_ID);
       if (selectedDivision !== 'all' && userMatch?.divisi !== selectedDivision) return false;
-      if (selectedStatus !== 'all' && w.Status !== selectedStatus) return false;
+      if (selectedStatus !== 'all' && getKanbanStatus(w) !== selectedStatus && w.Status !== selectedStatus) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        const matchName = w.Nama_Peserta.toLowerCase().includes(q);
-        const matchTarget = w.Target_Mingguan.toLowerCase().includes(q);
-        const matchWeek = w.Minggu_Ke.toLowerCase().includes(q);
-        if (!matchName && !matchTarget && !matchWeek) return false;
+        const resolvedUser = getKanbanUser(w, data.users).toLowerCase();
+        const task = getKanbanTask(w).toLowerCase();
+        const dueDate = getKanbanDueDate(w).toLowerCase();
+        if (!resolvedUser.includes(q) && !task.includes(q) && !dueDate.includes(q)) return false;
       }
       return true;
     });
-  }, [data.weeklyPlans, data.users, selectedDivision, selectedStatus, searchQuery]);
+  }, [data.kanbanItems, data.weeklyPlans, data.users, selectedDivision, selectedStatus, searchQuery]);
 
   // Filtered users
   const filteredUsers = useMemo(() => {
@@ -291,14 +302,14 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
     const m = mentors.find(x => x.userId === item.Mentor_ID);
     setDetailItem({
       type: 'weekly',
-      id: item.Plan_ID,
-      title: `Target Mingguan ${item.Minggu_Ke}`,
-      nama: item.Nama_Peserta,
+      id: String(item.Plan_ID || item.No || '1'),
+      title: `Task #${getKanbanNo(item)}: ${getKanbanTask(item)}`,
+      nama: getKanbanUser(item, data.users),
       divisi: u?.divisi || '-',
-      tanggal: item.Tanggal_Input,
-      status: item.Status,
-      content: item.Target_Mingguan,
-      catatanMentor: item.Catatan_Mentor,
+      tanggal: getKanbanDueDate(item),
+      status: (getKanbanReview(item) as ItemStatus) || 'Menunggu',
+      content: getKanbanTask(item),
+      catatanMentor: item.Catatan_Mentor || '',
       mentorName: m ? m.nama : '-'
     });
     setDetailModalOpen(true);
@@ -339,23 +350,23 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
   };
 
   const exportWeeklyCsv = () => {
-    const headers = ['Plan_ID', 'Tanggal_Input', 'Minggu_Ke', 'User_ID', 'Nama_Peserta', 'Divisi', 'Target_Mingguan', 'Status', 'Catatan_Mentor'];
-    const rows = filteredWeekly.map(w => {
-      const u = data.users.find(x => x.userId === w.User_ID);
+    const headers = ['No', 'Task', 'User', 'Priority', 'Status', 'Due Date', 'Start', 'End', 'Evidence', 'Review'];
+    const rows = filteredWeekly.map((k, idx) => {
       return [
-        w.Plan_ID,
-        w.Tanggal_Input,
-        w.Minggu_Ke,
-        w.User_ID,
-        `"${(w.Nama_Peserta || '').replace(/"/g, '""')}"`,
-        `"${(u?.divisi || '').replace(/"/g, '""')}"`,
-        `"${(w.Target_Mingguan || '').replace(/"/g, '""')}"`,
-        w.Status,
-        `"${(w.Catatan_Mentor || '').replace(/"/g, '""')}"`
+        getKanbanNo(k, idx),
+        `"${(getKanbanTask(k) || '').replace(/"/g, '""')}"`,
+        `"${(getKanbanUser(k, data.users) || '').replace(/"/g, '""')}"`,
+        `"${getKanbanPriority(k)}"`,
+        `"${getKanbanStatus(k)}"`,
+        `"${(getKanbanDueDate(k) || '').replace(/"/g, '""')}"`,
+        `"${(k.Start || '').replace(/"/g, '""')}"`,
+        `"${(k.End || '').replace(/"/g, '""')}"`,
+        `"${(getKanbanEvidence(k) || '').replace(/"/g, '""')}"`,
+        `"${getKanbanReview(k)}"`
       ].join(',');
     });
 
-    downloadCsv([headers.join(','), ...rows].join('\n'), `rekap_target_mingguan_${data.today}.csv`);
+    downloadCsv([headers.join(','), ...rows].join('\n'), `rekap_kanban_${data.today}.csv`);
   };
 
   const downloadCsv = (content: string, filename: string) => {
@@ -405,7 +416,7 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
               className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200/80 dark:bg-[#1e1e1e] dark:hover:bg-[#2d2d2d] text-slate-700 dark:text-[#cccccc] text-xs font-semibold rounded-xl transition-colors cursor-pointer border border-slate-200/70 dark:border-[#383838]"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-[#0b4e8c] dark:text-[#9cdcfe]" />
-              CSV Mingguan
+              CSV Kanban
             </button>
           </div>
         </div>
@@ -487,13 +498,14 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
           </button>
           <button
             onClick={() => setActiveTab('weekly')}
-            className={`pb-3 text-sm font-semibold transition-colors relative cursor-pointer ${
+            className={`pb-3 text-sm font-semibold transition-colors relative cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'weekly'
                 ? 'text-[#0b4e8c] dark:text-[#3794ff] border-b-2 border-[#0b4e8c] dark:border-[#3794ff]'
                 : 'text-slate-500 dark:text-[#858585] hover:text-slate-800 dark:hover:text-[#cccccc]'
             }`}
           >
-            Target Mingguan ({data.weeklyPlans.length})
+            <Layers className="w-4 h-4" />
+            <span>Kanban ({(data.kanbanItems || data.weeklyPlans).length})</span>
           </button>
           <button
             onClick={() => setActiveTab('users')}
@@ -863,113 +875,24 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
       )}
 
       {/* ========================================================= */}
-      {/* TAB 3: WEEKLY TARGET PLANS */}
+      {/* TAB 3: KANBAN TASKS & BOARD */}
       {/* ========================================================= */}
       {activeTab === 'weekly' && (
-        <div className="space-y-4">
-          {/* Filter Bar */}
-          <div className="bg-white dark:bg-[#252526] rounded-2xl border border-slate-200/90 dark:border-[#2d2d2d] p-4 shadow-xs space-y-3">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400 dark:text-[#858585] pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Cari target mingguan, nama peserta, minggu ISO..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/50 dark:bg-[#1e1e1e] text-slate-900 dark:text-white"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <select
-                  value={selectedDivision}
-                  onChange={e => setSelectedDivision(e.target.value)}
-                  className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#383838] bg-white dark:bg-[#1e1e1e] text-slate-700 dark:text-[#cccccc] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc]"
-                >
-                  <option value="all">Semua Divisi</option>
-                  {divisions.map(d => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
-
-                <select
-                  value={selectedStatus}
-                  onChange={e => setSelectedStatus(e.target.value)}
-                  className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#383838] bg-white dark:bg-[#1e1e1e] text-slate-700 dark:text-[#cccccc] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc]"
-                >
-                  <option value="all">Semua Status</option>
-                  <option value="Menunggu">Menunggu Review</option>
-                  <option value="Disetujui">Disetujui</option>
-                  <option value="Revisi">Perlu Revisi</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="bg-white dark:bg-[#252526] rounded-3xl border border-slate-200/90 dark:border-[#2d2d2d] shadow-xs overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 dark:bg-[#181818] border-b border-slate-200 dark:border-[#2d2d2d] text-slate-500 dark:text-[#858585] uppercase tracking-wider font-semibold text-[10px]">
-                  <tr>
-                    <th className="py-3 px-4">Minggu Ke</th>
-                    <th className="py-3 px-4">Peserta &amp; Divisi</th>
-                    <th className="py-3 px-4">Target Mingguan</th>
-                    <th className="py-3 px-4">Tanggal Input</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4">Catatan Mentor</th>
-                    <th className="py-3 px-4 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-[#2d2d2d] text-slate-700 dark:text-[#cccccc]">
-                  {filteredWeekly.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="text-center py-10 text-slate-400 dark:text-[#858585]">
-                        Tidak ada rencana mingguan yang sesuai filter.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredWeekly.map(w => {
-                      const u = data.users.find(x => x.userId === w.User_ID);
-                      return (
-                        <tr key={w.Plan_ID} className="hover:bg-slate-50/70 dark:hover:bg-[#2a2d2e] transition-colors">
-                          <td className="py-3.5 px-4 font-mono text-[11px] font-semibold text-[#0b4e8c] dark:text-[#9cdcfe] whitespace-nowrap">
-                            {w.Minggu_Ke}
-                          </td>
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            <strong className="text-slate-900 dark:text-white font-medium block">{w.Nama_Peserta}</strong>
-                            <span className="text-[11px] text-slate-400 dark:text-[#858585]">{u?.divisi || '-'}</span>
-                          </td>
-                          <td className="py-3.5 px-4 max-w-md">
-                            <p className="line-clamp-2 text-slate-800 dark:text-[#cccccc]">{w.Target_Mingguan}</p>
-                          </td>
-                          <td className="py-3.5 px-4 font-mono text-[11px] text-slate-500 dark:text-[#858585] whitespace-nowrap">
-                            {w.Tanggal_Input}
-                          </td>
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            <StatusBadge status={w.Status} size="sm" />
-                          </td>
-                          <td className="py-3.5 px-4 text-slate-500 dark:text-[#858585] max-w-xs truncate">
-                            {w.Catatan_Mentor || '-'}
-                          </td>
-                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                            <button
-                              onClick={() => viewWeeklyDetail(w)}
-                              className="p-1.5 text-slate-400 hover:text-[#0b4e8c] dark:text-[#858585] dark:hover:text-[#3794ff] rounded-lg hover:bg-slate-100 dark:hover:bg-[#1e1e1e] transition-colors cursor-pointer"
-                              title="Lihat Detail Target"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+        <div className="space-y-4 animate-fade-in-up">
+          <KanbanBoard
+            items={filteredWeekly}
+            users={data.users}
+            currentUser={user}
+            sheetTabs={['Semua', ...interns.map(i => i.nama)]}
+            activeSheetTab={searchQuery || 'Semua'}
+            onSelectSheetTab={(tab) => {
+              if (tab === 'Semua') {
+                setSearchQuery('');
+              } else {
+                setSearchQuery(tab);
+              }
+            }}
+          />
         </div>
       )}
 

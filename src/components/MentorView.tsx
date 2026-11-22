@@ -4,6 +4,17 @@ import { api } from '../api';
 import { StatusBadge } from './StatusBadge';
 import { Modal } from './Modal';
 import { SpreadsheetDailyTable } from './SpreadsheetDailyTable';
+import { KanbanBoard } from './KanbanBoard';
+import {
+  KanbanItem,
+  getKanbanTask,
+  getKanbanUser,
+  getKanbanPriority,
+  getKanbanStatus,
+  getKanbanDueDate,
+  getKanbanReview,
+  getKanbanEvidence
+} from '../types';
 import {
   Users,
   CheckCircle2,
@@ -54,7 +65,7 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewTarget, setReviewTarget] = useState<{
     id: string;
-    type: 'weekly' | 'daily';
+    type: 'weekly' | 'daily' | 'kanban';
     title: string;
     peserta: string;
     content: string;
@@ -84,11 +95,18 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
   }, [data.dailyActivities, selectedMentee, data.mentees]);
 
   const menteeWeekly = useMemo(() => {
-    return data.weeklyPlans.filter(w => {
-      if (selectedMentee !== 'all' && w.User_ID !== selectedMentee) return false;
+    const list = data.kanbanItems || data.weeklyPlans || [];
+    return list.filter(w => {
+      if (selectedMentee !== 'all') {
+        const targetMentee = data.mentees.find(m => m.userId === selectedMentee);
+        if (w.User_ID && String(w.User_ID).trim() === selectedMentee) return true;
+        const resolvedUser = getKanbanUser(w, data.mentees).toLowerCase();
+        if (targetMentee && resolvedUser.includes(targetMentee.nama.toLowerCase())) return true;
+        return false;
+      }
       return true;
     });
-  }, [data.weeklyPlans, selectedMentee]);
+  }, [data.kanbanItems, data.weeklyPlans, selectedMentee, data.mentees]);
 
   // Tab & status filtered lists
   const filteredDaily = useMemo(() => {
@@ -196,7 +214,7 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
   // Quick Review trigger
   const openReview = (
     id: string,
-    type: 'weekly' | 'daily',
+    type: 'weekly' | 'daily' | 'kanban',
     peserta: string,
     title: string,
     content: string,
@@ -222,11 +240,11 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
     setReviewModalOpen(true);
   };
 
-  const handleQuickApprove = async (id: string, type: 'weekly' | 'daily') => {
+  const handleQuickApprove = async (id: string, type: 'weekly' | 'daily' | 'kanban') => {
     try {
       const res = await api.reviewItem(user.email, pin, {
         id,
-        type,
+        type: type === 'kanban' ? 'weekly' : type,
         status: 'Disetujui',
         catatan: 'Disetujui oleh mentor.'
       });
@@ -250,7 +268,7 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
     try {
       const res = await api.reviewItem(user.email, pin, {
         id: reviewTarget.id,
-        type: reviewTarget.type,
+        type: reviewTarget.type === 'kanban' ? 'weekly' : reviewTarget.type,
         status: reviewStatus,
         catatan: reviewNote.trim()
       });
@@ -398,7 +416,8 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                 : 'text-slate-500 dark:text-[#858585] hover:text-slate-800 dark:hover:text-[#cccccc]'
             }`}
           >
-            <span>Target Mingguan ({filteredWeekly.length})</span>
+            <Layers className="w-4 h-4" />
+            <span>Kanban ({filteredWeekly.length})</span>
             {pendingWeeklyCount > 0 && (
               <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-100 dark:bg-[#342c15] text-amber-800 dark:text-[#dcdcaa] font-bold">
                 {pendingWeeklyCount}
@@ -853,89 +872,43 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
       )}
 
       {/* ========================================================= */}
-      {/* TAB 3: WEEKLY TARGET PLANS */}
+      {/* TAB 3: KANBAN BOARD & SPREADSHEET TABLE */}
       {/* ========================================================= */}
       {activeTab === 'weekly' && (
         <div className="space-y-4 animate-fade-in-up">
-          {filteredWeekly.length === 0 ? (
-            <div className="text-center py-12 bg-white dark:bg-[#252526] rounded-2xl border border-slate-200/90 dark:border-[#2d2d2d] p-8">
-              <Layers className="w-8 h-8 text-slate-400 dark:text-[#858585] mx-auto mb-2" />
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-white">Tidak ada rencana mingguan sesuai filter</h3>
-              <p className="text-xs text-slate-500 dark:text-[#858585] mt-0.5">Semua target telah ditinjau atau belum diajukan peserta.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredWeekly.map(item => {
-                const isPending = item.Status === 'Menunggu';
-
-                return (
-                  <article
-                    key={item.Plan_ID}
-                    className={`bg-white dark:bg-[#252526] rounded-2xl border p-5 shadow-xs transition-colors ${
-                      isPending
-                        ? 'border-amber-200/90 dark:border-[#5a4d22] bg-amber-50/15 dark:bg-[#2a2415]/40'
-                        : 'border-slate-200/90 dark:border-[#2d2d2d]'
-                    }`}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                      <div className="flex items-center gap-2">
-                        <strong className="text-sm font-semibold text-slate-900 dark:text-white">{item.Nama_Peserta}</strong>
-                        <span className="text-slate-300 dark:text-[#383838]">•</span>
-                        <span className="text-xs font-mono font-semibold text-[#0b4e8c] dark:text-[#9cdcfe] bg-blue-50 dark:bg-[#1e2733] border border-blue-200/60 dark:border-[#264f78] px-2 py-0.5 rounded">
-                          {item.Minggu_Ke}
-                        </span>
-                        <span className="text-xs text-slate-400 dark:text-[#858585] font-mono">Diinput: {item.Tanggal_Input}</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <StatusBadge status={item.Status} />
-                      </div>
-                    </div>
-
-                    <p className="text-sm text-slate-800 dark:text-[#cccccc] whitespace-pre-line leading-relaxed">
-                      {item.Target_Mingguan}
-                    </p>
-
-                    {item.Catatan_Mentor && (
-                      <div className="mt-3 p-2.5 rounded-xl bg-blue-50/50 dark:bg-[#1e2733] border border-blue-200/60 dark:border-[#264f78] text-xs text-slate-700 dark:text-[#cccccc]">
-                        <strong className="text-[#0b4e8c] dark:text-[#9cdcfe]">Catatan Anda:</strong> {item.Catatan_Mentor}
-                      </div>
-                    )}
-
-                    {/* Mentor Actions */}
-                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-[#2d2d2d] flex items-center justify-end gap-2">
-                      {isPending && (
-                        <button
-                          onClick={() => handleQuickApprove(item.Plan_ID, 'weekly')}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-800 dark:text-[#4ec9b0] bg-emerald-50 dark:bg-[#1b3424] hover:bg-emerald-100 dark:hover:bg-[#23452f] border border-emerald-200 dark:border-[#2e6040] rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-[#4ec9b0]" />
-                          Setujui Langsung
-                        </button>
-                      )}
-                      <button
-                        onClick={() =>
-                          openReview(
-                            item.Plan_ID,
-                            'weekly',
-                            item.Nama_Peserta,
-                            `Target Mingguan ${item.Minggu_Ke}`,
-                            item.Target_Mingguan,
-                            item.Status,
-                            item.Catatan_Mentor
-                          )
-                        }
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-[#cccccc] hover:text-[#0b4e8c] dark:hover:text-white bg-slate-100 dark:bg-[#1e1e1e] hover:bg-slate-200/80 dark:hover:bg-[#2d2d2d] rounded-lg transition-colors cursor-pointer"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5 text-slate-500 dark:text-[#858585]" />
-                        {item.Catatan_Mentor ? 'Ubah Tinjauan' : 'Beri Catatan / Revisi'}
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
+          <KanbanBoard
+            items={filteredWeekly}
+            users={data.mentees}
+            currentUser={user}
+            mentorMode={true}
+            onReview={(item) =>
+              openReview(
+                String(item.No || item.Plan_ID),
+                'kanban',
+                getKanbanUser(item, data.mentees),
+                `Task: ${getKanbanTask(item)}`,
+                getKanbanTask(item),
+                (getKanbanReview(item) as ItemStatus) || 'Menunggu',
+                '',
+                getKanbanEvidence(item),
+                ''
+              )
+            }
+            sheetTabs={['Semua', ...data.mentees.map(m => m.nama)]}
+            activeSheetTab={
+              selectedMentee === 'all'
+                ? 'Semua'
+                : (data.mentees.find(m => m.userId === selectedMentee)?.nama || 'Semua')
+            }
+            onSelectSheetTab={(tab) => {
+              if (tab === 'Semua') {
+                setSelectedMentee('all');
+              } else {
+                const found = data.mentees.find(m => m.nama === tab);
+                if (found) setSelectedMentee(found.userId);
+              }
+            }}
+          />
         </div>
       )}
 
