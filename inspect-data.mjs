@@ -4,7 +4,7 @@ async function run() {
   const r = await fetch(URL_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'getData', email: 'aldidajofanzadenis@gmail.com', pin: '123456' }),
+    body: JSON.stringify({ action: 'getData', email: 'hirumangun@gmail.com', pin: '123456' }),
   });
   const j = JSON.parse(await r.text());
   console.log('Status:', j.status);
