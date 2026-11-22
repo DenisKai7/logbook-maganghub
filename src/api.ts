@@ -14,7 +14,7 @@ const MOCK_DB_KEY = `${STORAGE_PREFIX}mock_db_v1`;
 // GANTI dengan URL /exec dari deployment Web App yang AKTIF (Deploy > Manage deployments).
 // Bisa juga diatur lewat VITE_APPS_SCRIPT_URL di .env (nilai .env menimpa default ini).
 const DEFAULT_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbzHfcocUXBUPo80LQSJwWvS64pxaaHq1ma_rD9Hiqm0guZmvaC7QuGdXA6irdad3a9Rew/exec";
+  "https://script.google.com/macros/s/AKfycbwVzXrP77PyVmFK441cErXcefjxfkogqZC9pAIN4QcX3oIRhZ50bjH2vp-GM-xnMRL4oQ/exec";
 
 // Set VITE_USE_MOCK=true di .env untuk tes offline memakai localStorage (tanpa Google Apps Script).
 const USE_MOCK = String(import.meta.env.VITE_USE_MOCK || "") === "true";
@@ -550,16 +550,26 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
     const dueDateVal = String(payload.dueDate || payload.mingguKe || "").trim();
     const startVal = String(payload.start || "").trim();
     const endVal = String(payload.end || "").trim();
-    const evidenceVal = String(payload.evidence || payload.outputLink || "").trim();
-    const reviewVal = String(payload.review || payload.catatan || "Menunggu").trim();
+    const evidenceVal = String(
+      payload.evidence || payload.outputLink || "",
+    ).trim();
+    const reviewVal = String(
+      payload.review || payload.catatan || "Menunggu",
+    ).trim();
 
-    const targetId = String(payload.no || payload.planId || payload.id || "").trim();
+    const targetId = String(
+      payload.no || payload.planId || payload.id || "",
+    ).trim();
     if (targetId) {
       const target = db.weeklyPlans.find(
-        (w) => String(w.No) === targetId || w.Plan_ID === targetId
+        (w) => String(w.No) === targetId || w.Plan_ID === targetId,
       );
       if (target) {
-        if (target.User_ID && target.User_ID !== user.userId && user.role !== "HR") {
+        if (
+          target.User_ID &&
+          target.User_ID !== user.userId &&
+          user.role !== "HR"
+        ) {
           return { status: "error", message: "Akses ditolak." };
         }
         target.Task = taskVal;
@@ -915,11 +925,8 @@ export const api = {
       mingguKe?: string;
     },
   ) => sendRequest({ action: "saveKanban", email, pin, data }),
-  saveWeeklyPlan: (
-    email: string,
-    pin: string,
-    data: any,
-  ) => sendRequest({ action: "saveKanban", email, pin, data }),
+  saveWeeklyPlan: (email: string, pin: string, data: any) =>
+    sendRequest({ action: "saveKanban", email, pin, data }),
   saveDailyActivity: (
     email: string,
     pin: string,
