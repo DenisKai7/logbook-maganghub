@@ -14,7 +14,7 @@ const MOCK_DB_KEY = `${STORAGE_PREFIX}mock_db_v1`;
 // GANTI dengan URL /exec dari deployment Web App yang AKTIF (Deploy > Manage deployments).
 // Bisa juga diatur lewat VITE_APPS_SCRIPT_URL di .env (nilai .env menimpa default ini).
 const DEFAULT_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbwVzXrP77PyVmFK441cErXcefjxfkogqZC9pAIN4QcX3oIRhZ50bjH2vp-GM-xnMRL4oQ/exec";
+  "https://script.google.com/macros/s/AKfycbzeR2siZ4_1BHbQIQ-z2OYAQTB6ZkU7eHK_bzM4Zb-KkkG4cvF3CIjOZ8BmJNDfkEpKGw/exec";
 
 // Set VITE_USE_MOCK=true di .env untuk tes offline memakai localStorage (tanpa Google Apps Script).
 const USE_MOCK = String(import.meta.env.VITE_USE_MOCK || "") === "true";
