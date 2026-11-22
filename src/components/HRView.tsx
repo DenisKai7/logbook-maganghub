@@ -1,8 +1,26 @@
 import React, { useState, useMemo } from 'react';
-import { User, HRData, DailyActivity, WeeklyPlan, ItemStatus } from '../types';
+import {
+  User,
+  HRData,
+  DailyActivity,
+  WeeklyPlan,
+  ItemStatus,
+  getDailyNo,
+  getDailyDate,
+  getDailyStart,
+  getDailyEnd,
+  getDailyDuration,
+  getDailyActivities,
+  getDailyActivitiesStatus,
+  getDailyTargetDesc,
+  getDailyTargetStatus,
+  getDailyNote,
+  getDailyEvidence,
+} from '../types';
 import { api } from '../api';
 import { StatusBadge } from './StatusBadge';
 import { Modal } from './Modal';
+import { SpreadsheetDailyTable } from './SpreadsheetDailyTable';
 import {
   Users,
   Download,
@@ -164,7 +182,7 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
     return mentors.map(m => {
       const mentees = interns.filter(i => i.mentorId === m.userId);
       const menteeIds = mentees.map(i => i.userId);
-      const assignedLogs = data.dailyActivities.filter(d => menteeIds.includes(d.User_ID));
+      const assignedLogs = data.dailyActivities.filter(d => d.User_ID ? menteeIds.includes(d.User_ID) : false);
       const pendingLogs = assignedLogs.filter(d => d.Status === 'Menunggu');
       const assignedWeekly = data.weeklyPlans.filter(w => menteeIds.includes(w.User_ID));
       const pendingWeekly = assignedWeekly.filter(w => w.Status === 'Menunggu');
@@ -201,14 +219,15 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
     return data.dailyActivities.filter(d => {
       const userMatch = data.users.find(u => u.userId === d.User_ID);
       if (selectedDivision !== 'all' && userMatch?.divisi !== selectedDivision) return false;
-      if (selectedStatus !== 'all' && d.Status !== selectedStatus) return false;
-      if (selectedCategory !== 'all' && d.Kategori !== selectedCategory) return false;
+      const statusVal = getDailyActivitiesStatus(d);
+      if (selectedStatus !== 'all' && statusVal !== selectedStatus && d.Status !== selectedStatus) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        const matchName = d.Nama_Peserta.toLowerCase().includes(q);
-        const matchDesc = d.Deskripsi_Aktivitas.toLowerCase().includes(q);
-        const matchCat = d.Kategori.toLowerCase().includes(q);
-        if (!matchName && !matchDesc && !matchCat) return false;
+        const matchName = (d.Nama_Peserta || '').toLowerCase().includes(q);
+        const matchDesc = getDailyActivities(d).toLowerCase().includes(q);
+        const matchDate = getDailyDate(d).toLowerCase().includes(q);
+        const matchNote = getDailyNote(d).toLowerCase().includes(q);
+        if (!matchName && !matchDesc && !matchDate && !matchNote) return false;
       }
       return true;
     });
@@ -249,17 +268,17 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
     const m = mentors.find(x => x.userId === item.Mentor_ID);
     setDetailItem({
       type: 'daily',
-      id: item.Log_ID,
-      title: `Logbook Harian #${item.Log_ID}`,
-      nama: item.Nama_Peserta,
+      id: String(item.No || item.Log_ID || '1'),
+      title: `Personal Daily Activities #${getDailyNo(item)}`,
+      nama: item.Nama_Peserta || '-',
       divisi: u?.divisi || '-',
-      tanggal: item.Tanggal,
-      status: item.Status,
-      content: item.Deskripsi_Aktivitas,
-      kategori: item.Kategori,
-      outputLink: item.Output_Link,
-      kendala: item.Kendala,
-      catatanMentor: item.Catatan_Mentor,
+      tanggal: getDailyDate(item),
+      status: (getDailyActivitiesStatus(item) as ItemStatus) || 'Done',
+      content: getDailyActivities(item),
+      kategori: getDailyActivitiesStatus(item),
+      outputLink: getDailyEvidence(item),
+      kendala: getDailyNote(item),
+      catatanMentor: item.Catatan_Mentor || item.Note,
       mentorName: m ? m.nama : '-'
     });
     setDetailModalOpen(true);
@@ -283,27 +302,38 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
     setDetailModalOpen(true);
   };
 
-  // CSV Exporters
+  // CSV Exporters matching the Personal Daily Activities format
   const exportDailyCsv = () => {
-    const headers = ['Log_ID', 'Tanggal', 'User_ID', 'Nama_Peserta', 'Divisi', 'Kategori', 'Deskripsi', 'Output_Link', 'Kendala', 'Status', 'Catatan_Mentor'];
-    const rows = filteredDaily.map(d => {
-      const u = data.users.find(x => x.userId === d.User_ID);
+    const headers = [
+      'No',
+      'Date',
+      'Start',
+      'End',
+      'Duration',
+      'Activities',
+      'Activities Status',
+      'Target Desc',
+      'Target Status',
+      'Note',
+      'Achieved Target Evidence'
+    ];
+    const rows = filteredDaily.map((d, idx) => {
       return [
-        d.Log_ID,
-        d.Tanggal,
-        d.User_ID,
-        `"${(d.Nama_Peserta || '').replace(/"/g, '""')}"`,
-        `"${(u?.divisi || '').replace(/"/g, '""')}"`,
-        `"${(d.Kategori || '').replace(/"/g, '""')}"`,
-        `"${(d.Deskripsi_Aktivitas || '').replace(/"/g, '""')}"`,
-        `"${(d.Output_Link || '').replace(/"/g, '""')}"`,
-        `"${(d.Kendala || '').replace(/"/g, '""')}"`,
-        d.Status,
-        `"${(d.Catatan_Mentor || '').replace(/"/g, '""')}"`
+        getDailyNo(d, idx),
+        `"${(getDailyDate(d) || '').replace(/"/g, '""')}"`,
+        `"${(getDailyStart(d) || '').replace(/"/g, '""')}"`,
+        `"${(getDailyEnd(d) || '').replace(/"/g, '""')}"`,
+        `"${(getDailyDuration(d) || '').replace(/"/g, '""')}"`,
+        `"${(getDailyActivities(d) || '').replace(/"/g, '""')}"`,
+        `"${(getDailyActivitiesStatus(d) || '').replace(/"/g, '""')}"`,
+        `"${(getDailyTargetDesc(d) || '').replace(/"/g, '""')}"`,
+        `"${(getDailyTargetStatus(d) || '').replace(/"/g, '""')}"`,
+        `"${(getDailyNote(d) || '').replace(/"/g, '""')}"`,
+        `"${(getDailyEvidence(d) || '').replace(/"/g, '""')}"`
       ].join(',');
     });
 
-    downloadCsv([headers.join(','), ...rows].join('\n'), `rekap_logbook_harian_${data.today}.csv`);
+    downloadCsv([headers.join(','), ...rows].join('\n'), `rekap_daily_activities_${data.today}.csv`);
   };
 
   const exportWeeklyCsv = () => {
@@ -811,81 +841,21 @@ export const HRView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
             </div>
           </div>
 
-          {/* Table */}
-          <div className="bg-white dark:bg-[#252526] rounded-3xl border border-slate-200/90 dark:border-[#2d2d2d] shadow-xs overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 dark:bg-[#181818] border-b border-slate-200 dark:border-[#2d2d2d] text-slate-500 dark:text-[#858585] uppercase tracking-wider font-semibold text-[10px]">
-                  <tr>
-                    <th className="py-3 px-4">Tanggal</th>
-                    <th className="py-3 px-4">Peserta &amp; Divisi</th>
-                    <th className="py-3 px-4">Kategori</th>
-                    <th className="py-3 px-4">Aktivitas</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4">Catatan Mentor</th>
-                    <th className="py-3 px-4 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-[#2d2d2d] text-slate-700 dark:text-[#cccccc]">
-                  {filteredDaily.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="text-center py-10 text-slate-400 dark:text-[#858585]">
-                        Tidak ada logbook yang cocok dengan filter pencarian.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredDaily.map(d => {
-                      const u = data.users.find(x => x.userId === d.User_ID);
-                      return (
-                        <tr key={d.Log_ID} className="hover:bg-slate-50/70 dark:hover:bg-[#2a2d2e] transition-colors">
-                          <td className="py-3.5 px-4 font-mono text-[11px] text-slate-500 dark:text-[#858585] whitespace-nowrap">
-                            {d.Tanggal}
-                          </td>
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            <strong className="text-slate-900 dark:text-white font-medium block">{d.Nama_Peserta}</strong>
-                            <span className="text-[11px] text-slate-400 dark:text-[#858585]">{u?.divisi || '-'}</span>
-                          </td>
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            <span className="bg-slate-100 dark:bg-[#1e1e1e] border border-slate-200/60 dark:border-[#383838] text-slate-700 dark:text-[#cccccc] px-2 py-0.5 rounded text-[11px]">
-                              {d.Kategori}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 max-w-sm">
-                            <p className="line-clamp-2 text-slate-800 dark:text-[#cccccc]">{d.Deskripsi_Aktivitas}</p>
-                            {d.Output_Link && (
-                              <a
-                                href={d.Output_Link.startsWith('http') ? d.Output_Link : `https://${d.Output_Link}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-[11px] text-[#0b4e8c] dark:text-[#9cdcfe] underline font-mono mt-0.5 block truncate max-w-xs"
-                              >
-                                {d.Output_Link}
-                              </a>
-                            )}
-                          </td>
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            <StatusBadge status={d.Status} size="sm" />
-                          </td>
-                          <td className="py-3.5 px-4 text-slate-500 dark:text-[#858585] max-w-xs truncate">
-                            {d.Catatan_Mentor || '-'}
-                          </td>
-                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                            <button
-                              onClick={() => viewDailyDetail(d)}
-                              className="p-1.5 text-slate-400 hover:text-[#0b4e8c] dark:text-[#858585] dark:hover:text-[#3794ff] rounded-lg hover:bg-slate-100 dark:hover:bg-[#1e1e1e] transition-colors cursor-pointer"
-                              title="Lihat Detail Entri"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          {/* Spreadsheet Table matching Personal Daily Activities Sheet */}
+          <SpreadsheetDailyTable
+            activities={filteredDaily}
+            showMenteeColumn={true}
+            sheetTabs={['Semua', ...interns.map(i => i.nama)]}
+            activeSheetTab={searchQuery ? (interns.find(i => i.nama.toLowerCase().includes(searchQuery.toLowerCase()))?.nama || 'Semua') : 'Semua'}
+            onSelectSheetTab={(tab) => {
+              if (tab === 'Semua') {
+                setSearchQuery('');
+              } else {
+                setSearchQuery(tab);
+              }
+            }}
+            emptyMessage="Tidak ada baris aktivitas logbook yang cocok dengan filter pencarian."
+          />
         </div>
       )}
 

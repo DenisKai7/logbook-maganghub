@@ -48,6 +48,37 @@ export function getTodayStr(d = new Date()): string {
   return `${y}-${m}-${day}`;
 }
 
+export function formatIndonesianDate(d: Date | string): string {
+  if (!d) return '';
+  const dateObj = typeof d === 'string' ? new Date(d) : d;
+  if (isNaN(dateObj.getTime())) {
+    return String(d);
+  }
+  const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  const months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+  const dayName = days[dateObj.getDay()];
+  const dateNum = dateObj.getDate();
+  const monthName = months[dateObj.getMonth()];
+  const year = dateObj.getFullYear();
+  return `${dayName}, ${dateNum} ${monthName} ${year}`;
+}
+
+export function computeDurationMinutes(startStr: string, endStr: string): number | '' {
+  if (!startStr || !endStr) return '';
+  const parseHM = (s: string) => {
+    const m = String(s).trim().match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return null;
+    return Number(m[1]) * 60 + Number(m[2]);
+  };
+  const startMin = parseHM(startStr);
+  const endMin = parseHM(endStr);
+  if (startMin === null || endMin === null) return '';
+  return endMin >= startMin ? endMin - startMin : endMin + 1440 - startMin;
+}
+
 // ---------------------------------------------------------------------------
 // Mock database (hanya dipakai jika VITE_USE_MOCK=true)
 // ---------------------------------------------------------------------------
@@ -123,17 +154,123 @@ function getInitialMockDB(): MockDB {
     ],
     dailyActivities: [
       {
+        No: 1,
+        Date: "Selasa, 10 November 2026",
+        Start: "08:00",
+        End: "09:00",
+        Duration: 60,
+        Activities: "Koordinasi dg Bp GM mengenai arsip dokumen legal",
+        "Activities Status": "Done",
+        "Target Desc": "",
+        "Target Status": "",
+        Note: "",
+        "Achieved Target Evidence": "",
         Log_ID: "DA-001",
-        Tanggal: getTodayStr(),
+        Tanggal: "2026-11-10",
+        User_ID: "INT01",
+        Nama_Peserta: "Andi Pratama",
+        Mentor_ID: "MNT01",
+        Kategori: "Diskusi / Rapat Tim",
+        Deskripsi_Aktivitas: "Koordinasi dg Bp GM mengenai arsip dokumen legal",
+        Output_Link: "",
+        Kendala: "",
+        Status: "Disetujui",
+        Catatan_Mentor: "",
+      },
+      {
+        No: 2,
+        Date: "Selasa, 10 November 2026",
+        Start: "09:00",
+        End: "10:00",
+        Duration: 60,
+        Activities: "Menemui Bp Arum driver SHS yang resign & ada info akan melapor ke Wawali mengenai kelebihan jam kerja",
+        "Activities Status": "Done",
+        "Target Desc": "",
+        "Target Status": "",
+        Note: "",
+        "Achieved Target Evidence": "",
+        Log_ID: "DA-002",
+        Tanggal: "2026-11-10",
         User_ID: "INT01",
         Nama_Peserta: "Andi Pratama",
         Mentor_ID: "MNT01",
         Kategori: "Mengerjakan Tugas",
-        Deskripsi_Aktivitas:
-          "Merancang komponen formulir pengisian logbook harian dengan validasi input dan tampilan adaptif mobile.",
-        Output_Link: "https://github.com/contoh/dashboard-magang",
-        Kendala: "Tidak ada kendala berarti.",
-        Status: "Menunggu",
+        Deskripsi_Aktivitas: "Menemui Bp Arum driver SHS yang resign & ada info akan melapor ke Wawali mengenai kelebihan jam kerja",
+        Output_Link: "",
+        Kendala: "",
+        Status: "Disetujui",
+        Catatan_Mentor: "",
+      },
+      {
+        No: 3,
+        Date: "Selasa, 10 November 2026",
+        Start: "10:00",
+        End: "14:00",
+        Duration: 240,
+        Activities: "Ke Disnakertrans Jatim memenuhi panggilan FU laporan a.n Adnri KCI",
+        "Activities Status": "Done",
+        "Target Desc": "",
+        "Target Status": "",
+        Note: "",
+        "Achieved Target Evidence": "",
+        Log_ID: "DA-003",
+        Tanggal: "2026-11-10",
+        User_ID: "INT01",
+        Nama_Peserta: "Andi Pratama",
+        Mentor_ID: "MNT01",
+        Kategori: "Mengerjakan Tugas",
+        Deskripsi_Aktivitas: "Ke Disnakertrans Jatim memenuhi panggilan FU laporan a.n Adnri KCI",
+        Output_Link: "",
+        Kendala: "",
+        Status: "Disetujui",
+        Catatan_Mentor: "",
+      },
+      {
+        No: 4,
+        Date: "Selasa, 10 November 2026",
+        Start: "14:00",
+        End: "17:00",
+        Duration: 180,
+        Activities: "Mengawal pengusulan program magang semua cabang & Melakukan pengusulan untuk East 1 (SIG & GSU)",
+        "Activities Status": "Done",
+        "Target Desc": "",
+        "Target Status": "",
+        Note: "",
+        "Achieved Target Evidence": "",
+        Log_ID: "DA-004",
+        Tanggal: "2026-11-10",
+        User_ID: "INT01",
+        Nama_Peserta: "Andi Pratama",
+        Mentor_ID: "MNT01",
+        Kategori: "Mengerjakan Tugas",
+        Deskripsi_Aktivitas: "Mengawal pengusulan program magang semua cabang & Melakukan pengusulan untuk East 1 (SIG & GSU)",
+        Output_Link: "",
+        Kendala: "",
+        Status: "Disetujui",
+        Catatan_Mentor: "",
+      },
+      {
+        No: 5,
+        Date: "Selasa, 10 November 2026",
+        Start: "18:00",
+        End: "21:00",
+        Duration: 180,
+        Activities: "BC dan info terkait penerimaan magang dan persiapan onboarding ke peserta maganghub",
+        "Activities Status": "Done",
+        "Target Desc": "",
+        "Target Status": "",
+        Note: "",
+        "Achieved Target Evidence": "",
+        Log_ID: "DA-005",
+        Tanggal: "2026-11-10",
+        User_ID: "INT01",
+        Nama_Peserta: "Andi Pratama",
+        Mentor_ID: "MNT01",
+        Kategori: "Dokumentasi & Laporan",
+        Deskripsi_Aktivitas: "BC dan info terkait penerimaan magang dan persiapan onboarding ke peserta maganghub",
+        Output_Link: "",
+        Kendala: "",
+        Status: "Disetujui",
         Catatan_Mentor: "",
       },
     ],
@@ -442,34 +579,63 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
       };
     }
     const payload = req.data || {};
-    if (!payload.tanggal || !payload.kategori || !payload.deskripsi) {
+    const dateVal = String(payload.date || payload.tanggal || getTodayStr()).trim();
+    const startVal = String(payload.start || '').trim();
+    const endVal = String(payload.end || '').trim();
+    const activitiesVal = String(payload.activities || payload.deskripsi || '').trim();
+
+    if (!dateVal || !activitiesVal) {
       return {
         status: "error",
-        message: "Tanggal, kategori, dan deskripsi aktivitas wajib diisi.",
+        message: "Date dan Activities wajib diisi.",
       };
     }
 
-    if (payload.logId) {
-      const target = db.dailyActivities.find((d) => d.Log_ID === payload.logId);
-      if (!target)
-        return {
-          status: "error",
-          message: "Data Daily Activity tidak ditemukan.",
-        };
-      if (target.User_ID !== user.userId)
-        return { status: "error", message: "Akses ditolak." };
-      if (target.Status === "Disetujui")
-        return {
-          status: "error",
-          message: "Aktivitas yang sudah disetujui tidak bisa diedit.",
-        };
+    const durationVal = (payload.duration !== undefined && payload.duration !== '')
+      ? Number(payload.duration)
+      : computeDurationMinutes(startVal, endVal);
 
-      target.Tanggal = String(payload.tanggal).trim();
-      target.Kategori = String(payload.kategori).trim();
-      target.Deskripsi_Aktivitas = String(payload.deskripsi).trim();
-      target.Output_Link = String(payload.outputLink || "").trim();
-      target.Kendala = String(payload.kendala || "").trim();
+    const actStatusVal = String(payload.activitiesStatus || payload.status || 'Done').trim();
+    const tgtStatusVal = String(payload.targetStatus || '').trim();
+    const tgtDescVal = String(payload.targetDesc || '').trim();
+    const noteVal = String(payload.note || payload.catatan || payload.kendala || '').trim();
+    const evidenceVal = String(payload.evidence || payload.outputLink || '').trim();
+
+    // Check if updating existing
+    const searchNo = payload.no ? String(payload.no).trim() : '';
+    const searchId = payload.logId ? String(payload.logId).trim() : '';
+
+    const target = db.dailyActivities.find((d) =>
+      (searchNo && String(d.No).trim() === searchNo) ||
+      (searchId && (d.Log_ID === searchId || String(d.No) === searchId))
+    );
+
+    if (target) {
+      if (target.User_ID && target.User_ID !== user.userId) {
+        return { status: "error", message: "Akses ditolak." };
+      }
+      if (target.Status === "Disetujui" || target["Activities Status"] === "Done") {
+        // Allow updating if not strictly locked
+      }
+
+      target.Date = dateVal;
+      target.Start = startVal;
+      target.End = endVal;
+      target.Duration = durationVal;
+      target.Activities = activitiesVal;
+      target["Activities Status"] = actStatusVal;
+      target["Target Desc"] = tgtDescVal;
+      target["Target Status"] = tgtStatusVal;
+      target.Note = noteVal;
+      target["Achieved Target Evidence"] = evidenceVal;
+
+      // Legacy synchronization
+      target.Tanggal = dateVal;
+      target.Deskripsi_Aktivitas = activitiesVal;
+      target.Output_Link = evidenceVal;
+      target.Kendala = noteVal;
       target.Status = "Menunggu";
+
       saveMockDB(db);
       return {
         status: "success",
@@ -477,16 +643,34 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
       };
     }
 
+    // Insert new item
+    const existingNos = db.dailyActivities
+      .map(d => Number(d.No))
+      .filter(n => !isNaN(n));
+    const nextNo = existingNos.length > 0 ? Math.max(...existingNos) + 1 : 1;
+
     const newAct: DailyActivity = {
-      Log_ID: "DA-" + Date.now().toString().slice(-8),
-      Tanggal: String(payload.tanggal).trim() || getTodayStr(),
+      No: nextNo,
+      Date: dateVal,
+      Start: startVal,
+      End: endVal,
+      Duration: durationVal,
+      Activities: activitiesVal,
+      "Activities Status": actStatusVal,
+      "Target Desc": tgtDescVal,
+      "Target Status": tgtStatusVal,
+      Note: noteVal,
+      "Achieved Target Evidence": evidenceVal,
+
+      Log_ID: "DA-" + String(nextNo).padStart(3, '0'),
+      Tanggal: dateVal,
       User_ID: user.userId,
       Nama_Peserta: user.nama,
       Mentor_ID: user.mentorId || "",
-      Kategori: String(payload.kategori).trim(),
-      Deskripsi_Aktivitas: String(payload.deskripsi).trim(),
-      Output_Link: String(payload.outputLink || "").trim(),
-      Kendala: String(payload.kendala || "").trim(),
+      Kategori: "Mengerjakan Tugas",
+      Deskripsi_Aktivitas: activitiesVal,
+      Output_Link: evidenceVal,
+      Kendala: noteVal,
       Status: "Menunggu",
       Catatan_Mentor: "",
     };
@@ -547,16 +731,17 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
     const idx = list.findIndex((item) =>
       isWeekly
         ? (item as WeeklyPlan).Plan_ID === payload.id
-        : (item as DailyActivity).Log_ID === payload.id,
+        : (item as DailyActivity).Log_ID === payload.id ||
+          String((item as DailyActivity).No) === String(payload.id),
     );
     if (idx === -1)
       return { status: "error", message: "Item tidak ditemukan." };
 
     const item = list[idx];
     if (user.role === "Peserta") {
-      if (item.User_ID !== user.userId)
+      if ((item as any).User_ID && (item as any).User_ID !== user.userId)
         return { status: "error", message: "Akses ditolak." };
-      if (item.Status === "Disetujui") {
+      if ((item as any).Status === "Disetujui") {
         return {
           status: "error",
           message: "Item yang sudah disetujui tidak bisa dihapus.",
@@ -660,12 +845,26 @@ export const api = {
     email: string,
     pin: string,
     data: {
-      tanggal: string;
-      kategori: string;
-      deskripsi: string;
+      no?: string | number;
+      rowIndex?: number;
+      date?: string;
+      tanggal?: string;
+      start?: string;
+      end?: string;
+      duration?: number | string;
+      activities?: string;
+      deskripsi?: string;
+      activitiesStatus?: string;
+      status?: string;
+      targetDesc?: string;
+      targetStatus?: string;
+      note?: string;
+      catatan?: string;
+      evidence?: string;
       outputLink?: string;
       kendala?: string;
       logId?: string;
+      kategori?: string;
     },
   ) => sendRequest({ action: "saveDailyActivity", email, pin, data }),
   reviewItem: (
