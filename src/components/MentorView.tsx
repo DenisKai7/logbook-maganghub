@@ -1,20 +1,41 @@
 import React, { useState, useMemo } from 'react';
-import { User, MentorData, DailyActivity, WeeklyPlan, ItemStatus } from '../types';
-import { api } from '../api';
-import { StatusBadge } from './StatusBadge';
-import { Modal } from './Modal';
-import { SpreadsheetDailyTable } from './SpreadsheetDailyTable';
-import { KanbanBoard } from './KanbanBoard';
 import {
+  User,
+  MentorData,
+  DailyActivity,
+  WeeklyPlan,
+  ItemStatus,
   KanbanItem,
+  KANBAN_STATUS_OPTIONS,
+  KANBAN_PRIORITY_OPTIONS,
+  ACTIVITY_STATUS_OPTIONS,
+  TARGET_STATUS_OPTIONS,
+  KanbanStatus,
+  KanbanPriority,
   getKanbanTask,
   getKanbanUser,
   getKanbanPriority,
   getKanbanStatus,
   getKanbanDueDate,
   getKanbanReview,
-  getKanbanEvidence
+  getKanbanEvidence,
+  getDailyDate,
+  getDailyStart,
+  getDailyEnd,
+  getDailyDuration,
+  getDailyActivities,
+  getDailyActivitiesStatus,
+  getDailyTargetDesc,
+  getDailyTargetStatus,
+  getDailyNote,
+  getDailyEvidence,
+  getDailyStatusReview,
 } from '../types';
+import { api, getTodayStr } from '../api';
+import { StatusBadge } from './StatusBadge';
+import { Modal } from './Modal';
+import { SpreadsheetDailyTable } from './SpreadsheetDailyTable';
+import { KanbanBoard } from './KanbanBoard';
 import {
   Users,
   CheckCircle2,
@@ -34,7 +55,8 @@ import {
   AlertTriangle,
   Award,
   ArrowUpRight,
-  Filter
+  Filter,
+  Printer
 } from 'lucide-react';
 
 interface Props {
@@ -73,11 +95,39 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
     kendala?: string;
     currentStatus: ItemStatus;
     catatan: string;
+    // Daily-specific fields for mentor to view/edit
+    date?: string;
+    start?: string;
+    end?: string;
+    duration?: string;
+    activitiesStatus?: string;
+    targetDesc?: string;
+    targetStatus?: string;
+    note?: string;
   } | null>(null);
-  const [reviewStatus, setReviewStatus] = useState<'Disetujui' | 'Revisi'>('Disetujui');
   const [reviewNote, setReviewNote] = useState('');
-  const [reviewLoading, setReviewLoading] = useState(false);
-  const [reviewError, setReviewError] = useState('');
+
+  // Review-with-note inline modal state
+  const [reviewNoteModalOpen, setReviewNoteModalOpen] = useState(false);
+  const [reviewNoteTarget, setReviewNoteTarget] = useState<DailyActivity | null>(null);
+  const [reviewNoteStatus, setReviewNoteStatus] = useState<'Menunggu' | 'Disetujui' | 'Revisi' | 'Ditolak'>('Menunggu');
+  const [reviewNoteText, setReviewNoteText] = useState('');
+  const [reviewNoteLoading, setReviewNoteLoading] = useState(false);
+
+  // Mentor add task modal state
+  const [kanbanModalOpen, setKanbanModalOpen] = useState(false);
+  const [kanbanForm, setKanbanForm] = useState({
+    task: '',
+    priority: 'Medium' as KanbanPriority,
+    status: 'To Do' as KanbanStatus,
+    dueDate: '',
+    start: getTodayStr(),
+    end: '',
+    evidence: '',
+  });
+  const [assignedTo, setAssignedTo] = useState<Set<string>>(new Set());
+  const [kanbanLoading, setKanbanLoading] = useState(false);
+  const [kanbanError, setKanbanError] = useState('');
 
   // Mentee filtered dataset
   const menteeDaily = useMemo(() => {
@@ -221,7 +271,17 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
     currentStatus: ItemStatus,
     catatan = '',
     outputLink?: string,
-    kendala?: string
+    kendala?: string,
+    dailyFields?: {
+      date?: string;
+      start?: string;
+      end?: string;
+      duration?: string;
+      activitiesStatus?: string;
+      targetDesc?: string;
+      targetStatus?: string;
+      note?: string;
+    }
   ) => {
     setReviewTarget({
       id,
@@ -232,11 +292,10 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
       outputLink,
       kendala,
       currentStatus,
-      catatan
+      catatan,
+      ...dailyFields
     });
-    setReviewStatus(currentStatus === 'Revisi' ? 'Revisi' : 'Disetujui');
     setReviewNote(catatan || '');
-    setReviewError('');
     setReviewModalOpen(true);
   };
 
@@ -258,31 +317,107 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
     }
   };
 
-  const handleSubmitReview = async (e: React.FormEvent) => {
+  const openReviewWithNote = (item: DailyActivity) => {
+    setReviewNoteTarget(item);
+    setReviewNoteStatus((getDailyStatusReview(item) as any) || 'Menunggu');
+    setReviewNoteText(item.Note || item.Catatan_Mentor || '');
+    setReviewNoteModalOpen(true);
+  };
+
+  const handleSubmitReviewWithNote = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reviewTarget) return;
-
-    setReviewLoading(true);
-    setReviewError('');
-
+    if (!reviewNoteTarget) return;
+    setReviewNoteLoading(true);
     try {
       const res = await api.reviewItem(user.email, pin, {
-        id: reviewTarget.id,
-        type: reviewTarget.type === 'kanban' ? 'weekly' : reviewTarget.type,
-        status: reviewStatus,
-        catatan: reviewNote.trim()
+        id: reviewNoteTarget.Log_ID || String(reviewNoteTarget.No),
+        type: 'daily',
+        status: reviewNoteStatus,
+        catatan: reviewNoteText.trim(),
+      });
+      if (res.status === 'success') {
+        setReviewNoteModalOpen(false);
+        onRefresh();
+      } else {
+        alert(res.message || 'Gagal menyimpan review.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Terjadi kesalahan sistem.');
+    } finally {
+      setReviewNoteLoading(false);
+    }
+  };
+
+  // Mentor add kanban task handlers
+  const openNewKanban = () => {
+    setKanbanForm({
+      task: '',
+      priority: 'Medium',
+      status: 'To Do',
+      dueDate: '',
+      start: getTodayStr(),
+      end: '',
+      evidence: '',
+    });
+    setAssignedTo(new Set());
+    setKanbanError('');
+    setKanbanModalOpen(true);
+  };
+
+  const toggleAssignee = (userId: string) => {
+    const next = new Set(assignedTo);
+    if (next.has(userId)) next.delete(userId);
+    else next.add(userId);
+    setAssignedTo(next);
+  };
+
+  const toggleAllAssignees = () => {
+    if (assignedTo.size === data.mentees.length) {
+      setAssignedTo(new Set());
+    } else {
+      setAssignedTo(new Set(data.mentees.map(m => m.userId)));
+    }
+  };
+
+  const handleSaveKanban = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setKanbanError('');
+    if (!kanbanForm.task.trim()) {
+      setKanbanError('Task wajib diisi.');
+      return;
+    }
+    if (assignedTo.size === 0) {
+      setKanbanError('Pilih minimal satu peserta yang ditugaskan.');
+      return;
+    }
+
+    setKanbanLoading(true);
+    try {
+      const assignedList = data.mentees
+        .filter(m => assignedTo.has(m.userId))
+        .map(m => ({ userId: m.userId, nama: m.nama }));
+
+      const res = await api.saveKanban(user.email, pin, {
+        task: kanbanForm.task.trim(),
+        priority: kanbanForm.priority,
+        status: kanbanForm.status,
+        dueDate: kanbanForm.dueDate,
+        start: kanbanForm.start,
+        end: kanbanForm.end,
+        evidence: kanbanForm.evidence.trim(),
+        assignedTo: assignedList,
       });
 
       if (res.status === 'success') {
-        setReviewModalOpen(false);
+        setKanbanModalOpen(false);
         onRefresh();
       } else {
-        setReviewError(res.message || 'Gagal menyimpan tinjauan.');
+        setKanbanError(res.message || 'Gagal menyimpan task Kanban.');
       }
     } catch (err: any) {
-      setReviewError(err.message || 'Terjadi kesalahan sistem.');
+      setKanbanError(err.message || 'Terjadi kesalahan sistem.');
     } finally {
-      setReviewLoading(false);
+      setKanbanLoading(false);
     }
   };
 
@@ -803,7 +938,17 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                                 (item.Status as ItemStatus) || 'Menunggu',
                                 item.Note || item.Catatan_Mentor || '',
                                 item['Achieved Target Evidence'] || item.Output_Link,
-                                item.Note || item.Kendala
+                                item.Note || item.Kendala,
+                                {
+                                  date: getDailyDate(item),
+                                  start: getDailyStart(item),
+                                  end: getDailyEnd(item),
+                                  duration: getDailyDuration(item),
+                                  activitiesStatus: getDailyActivitiesStatus(item),
+                                  targetDesc: getDailyTargetDesc(item),
+                                  targetStatus: getDailyTargetStatus(item),
+                                  note: getDailyNote(item),
+                                }
                               )
                             }
                             className="text-[11px] font-semibold text-[#0b4e8c] dark:text-[#9cdcfe] hover:underline cursor-pointer flex items-center gap-1"
@@ -837,7 +982,6 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
             activities={filteredDaily}
             users={data.mentees}
             mentorMode={true}
-            onQuickApprove={(id) => handleQuickApprove(id, 'daily')}
             onReview={(item) =>
               openReview(
                 item.Log_ID || String(item.No),
@@ -848,7 +992,17 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                 (item.Status as ItemStatus) || 'Menunggu',
                 item.Note || item.Catatan_Mentor,
                 item['Achieved Target Evidence'] || item.Output_Link,
-                item.Note || item.Kendala
+                item.Note || item.Kendala,
+                {
+                  date: getDailyDate(item),
+                  start: getDailyStart(item),
+                  end: getDailyEnd(item),
+                  duration: getDailyDuration(item),
+                  activitiesStatus: getDailyActivitiesStatus(item),
+                  targetDesc: getDailyTargetDesc(item),
+                  targetStatus: getDailyTargetStatus(item),
+                  note: getDailyNote(item),
+                }
               )
             }
             sheetTabs={['Semua', ...data.mentees.map(m => m.nama)]}
@@ -867,12 +1021,13 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
             }}
             showMenteeColumn={selectedMentee === 'all'}
             emptyMessage="Tidak ada baris aktivitas logbook yang sesuai dengan filter."
+            onReviewWithNote={openReviewWithNote}
           />
         </div>
       )}
 
       {/* ========================================================= */}
-      {/* TAB 3: KANBAN BOARD & SPREADSHEET TABLE */}
+      {/* TAB 3: KANBAN TABLE */}
       {/* ========================================================= */}
       {activeTab === 'weekly' && (
         <div className="space-y-4 animate-fade-in-up">
@@ -881,6 +1036,7 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
             users={data.mentees}
             currentUser={user}
             mentorMode={true}
+            onAddNew={openNewKanban}
             onReview={(item) =>
               openReview(
                 String(item.No || item.Plan_ID),
@@ -912,21 +1068,15 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
         </div>
       )}
 
-      {/* REVIEW MODAL */}
+      {/* REVIEW MODAL — Print View Only */}
       <Modal
         isOpen={reviewModalOpen}
         onClose={() => setReviewModalOpen(false)}
-        title="Tinjau Entri Peserta"
+        title="Laporan Entri Peserta"
         subtitle={reviewTarget ? `${reviewTarget.peserta} — ${reviewTarget.title}` : ''}
       >
         {reviewTarget && (
-          <form onSubmit={handleSubmitReview} className="space-y-4">
-            {reviewError && (
-              <div className="p-3 rounded-xl bg-rose-50 dark:bg-[#341b1d] border border-rose-200 dark:border-[#5c2427] text-xs text-rose-800 dark:text-[#f48771]">
-                {reviewError}
-              </div>
-            )}
-
+          <div className="space-y-4 print:space-y-3" id="review-print-area">
             <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838] text-xs space-y-2">
               <span className="font-semibold text-slate-500 dark:text-[#858585] uppercase tracking-wider block text-[10px]">
                 Deskripsi Peserta:
@@ -958,50 +1108,110 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
               )}
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1.5">Keputusan Status</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setReviewStatus('Disetujui')}
-                  className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer ${
-                    reviewStatus === 'Disetujui'
-                      ? 'bg-emerald-50 dark:bg-[#1b3424] text-emerald-900 dark:text-[#4ec9b0] border-emerald-300 dark:border-[#2e6040] ring-2 ring-emerald-500/20'
-                      : 'bg-white dark:bg-[#1e1e1e] text-slate-600 dark:text-[#858585] border-slate-200 dark:border-[#383838] hover:bg-slate-50 dark:hover:bg-[#252526]'
-                  }`}
-                >
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-[#4ec9b0]" />
-                  Disetujui
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setReviewStatus('Revisi')}
-                  className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer ${
-                    reviewStatus === 'Revisi'
-                      ? 'bg-amber-50 dark:bg-[#342c15] text-amber-900 dark:text-[#dcdcaa] border-amber-300 dark:border-[#5a4d22] ring-2 ring-amber-500/20'
-                      : 'bg-white dark:bg-[#1e1e1e] text-slate-600 dark:text-[#858585] border-slate-200 dark:border-[#383838] hover:bg-slate-50 dark:hover:bg-[#252526]'
-                  }`}
-                >
-                  <RotateCcw className="w-4 h-4 text-amber-600 dark:text-[#cca700]" />
-                  Perlu Revisi
-                </button>
+            {reviewTarget.type === 'daily' && reviewTarget.date && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs print:grid-cols-4">
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838]">
+                  <span className="text-[10px] text-slate-400 dark:text-[#858585] block">Date</span>
+                  <span className="font-medium text-slate-800 dark:text-[#cccccc]">{reviewTarget.date}</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838]">
+                  <span className="text-[10px] text-slate-400 dark:text-[#858585] block">Start</span>
+                  <span className="font-mono text-slate-700 dark:text-[#cccccc]">{reviewTarget.start || '-'}</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838]">
+                  <span className="text-[10px] text-slate-400 dark:text-[#858585] block">End</span>
+                  <span className="font-mono text-slate-700 dark:text-[#cccccc]">{reviewTarget.end || '-'}</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838]">
+                  <span className="text-[10px] text-slate-400 dark:text-[#858585] block">Duration</span>
+                  <span className="font-mono text-slate-700 dark:text-[#cccccc]">{reviewTarget.duration !== '-' ? `${reviewTarget.duration} m` : '-'}</span>
+                </div>
               </div>
+            )}
+
+            {reviewTarget.type === 'daily' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838]">
+                  <span className="text-[10px] text-slate-400 dark:text-[#858585] block">Activities Status</span>
+                  <span className="font-medium text-slate-800 dark:text-[#cccccc]">{reviewTarget.activitiesStatus || '-'}</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838]">
+                  <span className="text-[10px] text-slate-400 dark:text-[#858585] block">Target Status</span>
+                  <span className="font-medium text-slate-800 dark:text-[#cccccc]">{reviewTarget.targetStatus || '-'}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="p-3 rounded-lg bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838] text-xs">
+              <span className="text-[10px] text-slate-400 dark:text-[#858585] block mb-1">Status Review</span>
+              <StatusBadge status={reviewTarget.currentStatus} size="sm" />
+            </div>
+
+            {(reviewTarget.note || reviewNote) && (
+              <div className="p-3 rounded-lg bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838] text-xs">
+                <span className="text-[10px] text-slate-400 dark:text-[#858585] block mb-1">Catatan Mentor</span>
+                <p className="text-slate-800 dark:text-[#cccccc] whitespace-pre-line">{reviewNote || reviewTarget.note}</p>
+              </div>
+            )}
+
+            <div className="pt-2 flex items-center justify-end gap-2 print:hidden">
+              <button
+                type="button"
+                onClick={() => setReviewModalOpen(false)}
+                className="px-3 py-2 text-xs font-medium text-slate-600 dark:text-[#858585] hover:text-slate-900 dark:hover:text-white cursor-pointer"
+              >
+                Tutup
+              </button>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="px-4 py-2 bg-[#0b4e8c] hover:bg-[#083b6b] dark:bg-[#0e639c] dark:hover:bg-[#1177bb] text-white text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer inline-flex items-center gap-1.5"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                Cetak / PDF
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* REVIEW WITH NOTE MODAL */}
+      <Modal
+        isOpen={reviewNoteModalOpen}
+        onClose={() => setReviewNoteModalOpen(false)}
+        title="Review & Catatan"
+        subtitle={reviewNoteTarget ? `${reviewNoteTarget.Nama_Peserta || 'Peserta'} — Aktivitas ${getDailyDate(reviewNoteTarget)}` : ''}
+      >
+        {reviewNoteTarget && (
+          <form onSubmit={handleSubmitReviewWithNote} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1.5">Status Review</label>
+              <select
+                value={reviewNoteStatus}
+                onChange={e => setReviewNoteStatus(e.target.value as any)}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-white dark:bg-[#1e1e1e] text-slate-900 dark:text-white"
+              >
+                {['Menunggu', 'Disetujui', 'Revisi', 'Ditolak'].map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">
-                Catatan / Feedback untuk Peserta <span className="text-slate-400 dark:text-[#858585] font-normal">(opsional)</span>
+                Catatan / Feedback <span className="text-slate-400 dark:text-[#858585] font-normal">(opsional)</span>
               </label>
               <textarea
-                rows={3}
+                rows={4}
                 placeholder={
-                  reviewStatus === 'Revisi'
-                    ? 'Jelaskan apa yang perlu diperbaiki atau dilengkapi oleh peserta...'
-                    : 'Tulis apresiasi atau saran pengembangan lebih lanjut...'
+                  reviewNoteStatus === 'Revisi'
+                    ? 'Jelaskan apa yang perlu diperbaiki...'
+                    : reviewNoteStatus === 'Ditolak'
+                    ? 'Jelaskan alasan penolakan...'
+                    : 'Tulis apresiasi, saran, atau catatan untuk peserta...'
                 }
-                value={reviewNote}
-                onChange={e => setReviewNote(e.target.value)}
+                value={reviewNoteText}
+                onChange={e => setReviewNoteText(e.target.value)}
                 className="w-full p-3 text-xs sm:text-sm rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-white dark:bg-[#1e1e1e] text-slate-900 dark:text-white leading-relaxed"
               />
             </div>
@@ -1009,21 +1219,177 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
             <div className="pt-2 flex items-center justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setReviewModalOpen(false)}
+                onClick={() => setReviewNoteModalOpen(false)}
                 className="px-3 py-2 text-xs font-medium text-slate-600 dark:text-[#858585] hover:text-slate-900 dark:hover:text-white cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="submit"
-                disabled={reviewLoading}
+                disabled={reviewNoteLoading}
                 className="px-4 py-2 bg-[#0b4e8c] hover:bg-[#083b6b] dark:bg-[#0e639c] dark:hover:bg-[#1177bb] disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer"
               >
-                {reviewLoading ? 'Menyimpan...' : 'Simpan Tinjauan'}
+                {reviewNoteLoading ? 'Menyimpan...' : 'Simpan Review'}
               </button>
             </div>
           </form>
         )}
+      </Modal>
+
+      {/* MENTOR ADD KANBAN TASK MODAL */}
+      <Modal
+        isOpen={kanbanModalOpen}
+        onClose={() => setKanbanModalOpen(false)}
+        title="Tambah Task Kanban"
+        subtitle="Tugaskan ke satu atau beberapa peserta bimbingan"
+      >
+        <form onSubmit={handleSaveKanban} className="space-y-4">
+          {kanbanError && (
+            <div className="p-3 rounded-xl bg-rose-50 dark:bg-[#341b1d] border border-rose-200 dark:border-[#5c2427] text-xs text-rose-800 dark:text-[#f48771]">
+              {kanbanError}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">
+              Task <span className="text-rose-500">*</span>
+            </label>
+            <textarea
+              required
+              rows={3}
+              placeholder="Contoh: Menyelesaikan arsitektur dashboard peserta dan integrasi API login."
+              value={kanbanForm.task}
+              onChange={e => setKanbanForm({ ...kanbanForm, task: e.target.value })}
+              className="w-full p-3 text-xs sm:text-sm rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/30 dark:bg-[#1e1e1e] text-slate-900 dark:text-white leading-relaxed"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">Priority</label>
+              <select
+                value={kanbanForm.priority}
+                onChange={e => setKanbanForm({ ...kanbanForm, priority: e.target.value as KanbanPriority })}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-white dark:bg-[#1e1e1e] text-slate-900 dark:text-white font-semibold"
+              >
+                {KANBAN_PRIORITY_OPTIONS.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">Status</label>
+              <select
+                value={kanbanForm.status}
+                onChange={e => {
+                  const newStatus = e.target.value as KanbanStatus;
+                  const updated = { ...kanbanForm, status: newStatus };
+                  if (newStatus === 'Done' && !kanbanForm.end) {
+                    updated.end = getTodayStr();
+                  }
+                  setKanbanForm(updated);
+                }}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-white dark:bg-[#1e1e1e] text-slate-900 dark:text-white font-semibold"
+              >
+                {KANBAN_STATUS_OPTIONS.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">Due Date</label>
+              <input
+                type="date"
+                value={kanbanForm.dueDate.includes('-') && kanbanForm.dueDate.length === 10 ? kanbanForm.dueDate : ''}
+                onChange={e => setKanbanForm({ ...kanbanForm, dueDate: e.target.value })}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/50 dark:bg-[#1e1e1e] text-slate-900 dark:text-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">Start Date</label>
+              <input
+                type="date"
+                value={kanbanForm.start.includes('-') && kanbanForm.start.length === 10 ? kanbanForm.start : ''}
+                onChange={e => setKanbanForm({ ...kanbanForm, start: e.target.value })}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/50 dark:bg-[#1e1e1e] text-slate-900 dark:text-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">
+                End Date <span className="text-slate-400 dark:text-[#858585] font-normal">(otomatis saat Done)</span>
+              </label>
+              <input
+                type="date"
+                value={kanbanForm.end.includes('-') && kanbanForm.end.length === 10 ? kanbanForm.end : ''}
+                onChange={e => setKanbanForm({ ...kanbanForm, end: e.target.value })}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/50 dark:bg-[#1e1e1e] text-slate-900 dark:text-white"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">Evidence</label>
+            <input
+              type="text"
+              placeholder="https://drive.google.com/... atau link dokumen"
+              value={kanbanForm.evidence}
+              onChange={e => setKanbanForm({ ...kanbanForm, evidence: e.target.value })}
+              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/50 dark:bg-[#1e1e1e] text-slate-900 dark:text-white font-mono"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1.5">
+              Ditugaskan Ke <span className="text-rose-500">*</span>
+            </label>
+            <div className="border border-slate-200 dark:border-[#383838] rounded-xl p-3 space-y-2 max-h-48 overflow-y-auto bg-slate-50/50 dark:bg-[#1e1e1e]">
+              <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] pb-2 border-b border-slate-200 dark:border-[#383838] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={assignedTo.size === data.mentees.length && data.mentees.length > 0}
+                  onChange={toggleAllAssignees}
+                  className="rounded border-slate-300 text-[#0b4e8c] focus:ring-[#0b4e8c]"
+                />
+                Pilih Semua ({data.mentees.length} Peserta)
+              </label>
+              {data.mentees.map(m => (
+                <label key={m.userId} className="flex items-center gap-2 text-xs text-slate-700 dark:text-[#cccccc] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={assignedTo.has(m.userId)}
+                    onChange={() => toggleAssignee(m.userId)}
+                    className="rounded border-slate-300 text-[#0b4e8c] focus:ring-[#0b4e8c]"
+                  />
+                  <span>{m.nama}</span>
+                  <span className="text-[10px] text-slate-400 dark:text-[#858585]">({m.divisi})</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-2 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setKanbanModalOpen(false)}
+              className="px-3 py-2 text-xs font-medium text-slate-600 dark:text-[#858585] hover:text-slate-900 dark:hover:text-white cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={kanbanLoading}
+              className="px-4 py-2 bg-[#0b4e8c] hover:bg-[#083b6b] dark:bg-[#0e639c] dark:hover:bg-[#1177bb] disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer"
+            >
+              {kanbanLoading ? 'Menyimpan...' : 'Tambah Task'}
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

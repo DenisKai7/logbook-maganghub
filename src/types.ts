@@ -1,5 +1,5 @@
 export type Role = 'Peserta' | 'Mentor' | 'HR';
-export type ItemStatus = 'Menunggu' | 'Disetujui' | 'Revisi';
+export type ItemStatus = 'Menunggu' | 'Disetujui' | 'Revisi' | 'Ditolak';
 
 export const ACTIVITY_STATUS_OPTIONS = [
   'Done',
@@ -24,7 +24,7 @@ export type KanbanPriority = typeof KANBAN_PRIORITY_OPTIONS[number];
 export const KANBAN_STATUS_OPTIONS = ['To Do', 'In Progress', 'In Review', 'Done', 'Blocked'] as const;
 export type KanbanStatus = typeof KANBAN_STATUS_OPTIONS[number];
 
-export const KANBAN_REVIEW_OPTIONS = ['Menunggu', 'Disetujui', 'Revisi'] as const;
+export const KANBAN_REVIEW_OPTIONS = ['Menunggu', 'Disetujui', 'Revisi', 'Ditolak'] as const;
 export type KanbanReview = typeof KANBAN_REVIEW_OPTIONS[number];
 
 export interface User {
@@ -52,7 +52,9 @@ export interface KanbanItem {
   Due_Date?: string;
   dueDate?: string;
   Start?: string;
+  'Start Date'?: string;
   End?: string;
+  'End Date'?: string;
   Evidence?: string;
   Review?: KanbanReview | string;
   User_ID?: string;
@@ -106,6 +108,14 @@ export function getKanbanDueDate(k: KanbanItem): string {
   return k['Due Date'] || k.Due_Date || k.dueDate || k.Minggu_Ke || '-';
 }
 
+export function getKanbanStartDate(k: KanbanItem): string {
+  return k['Start Date'] || k.Start || '-';
+}
+
+export function getKanbanEndDate(k: KanbanItem): string {
+  return k['End Date'] || k.End || '-';
+}
+
 export function getKanbanReview(k: KanbanItem): KanbanReview {
   const r = (k.Review || k.Catatan_Mentor || 'Menunggu') as KanbanReview;
   if (KANBAN_REVIEW_OPTIONS.includes(r)) return r;
@@ -142,6 +152,8 @@ export interface DailyActivity {
   User_ID?: string;
   Nama_Peserta?: string;
   Mentor_ID?: string;
+  'Status Review'?: string;
+  Status_Review?: string;
   _rowIndex?: number;
 
   // Legacy & Compatibility Fields
@@ -187,12 +199,14 @@ export function getDailyActivities(d: DailyActivity): string {
 }
 
 export function getDailyActivitiesStatus(d: DailyActivity): string {
-  return (
-    d['Activities Status'] ||
-    d.Activities_Status ||
-    d.Status ||
-    'Done'
-  );
+  // Status Review (Menunggu/Disetujui/Revisi/Ditolak) TIDAK boleh override Activities Status
+  const statusReview = d['Status Review'] || d.Status_Review || d.Status;
+  const actStatus = d['Activities Status'] || d.Activities_Status;
+  if (actStatus) return actStatus;
+  // Jika Status memang berupa activities status (Done/On Progress/Cancelled/Rescheduled), gunakan
+  const validActivityStatuses = ['Done', 'On Progress', 'Cancelled', 'Rescheduled'];
+  if (statusReview && validActivityStatuses.includes(statusReview)) return statusReview;
+  return 'Done';
 }
 
 export function getDailyTargetDesc(d: DailyActivity): string {
@@ -209,6 +223,10 @@ export function getDailyNote(d: DailyActivity): string {
 
 export function getDailyEvidence(d: DailyActivity): string {
   return d['Achieved Target Evidence'] || d.Achieved_Target_Evidence || d.Output_Link || '';
+}
+
+export function getDailyStatusReview(d: DailyActivity): string {
+  return d['Status Review'] || d.Status_Review || d.Status || 'Menunggu';
 }
 
 export function isTotalSummaryRow(d: DailyActivity): boolean {

@@ -7,13 +7,13 @@ const SHEETS = {
 const ACTIVITY_STATUS_OPTIONS = ['Done', 'On Progress', 'Cancelled', 'Rescheduled'];
 const TARGET_STATUS_OPTIONS = ['Achieved', 'In Progress', 'Not Achieved', 'Exceeded', 'N/A'];
 
-// FIX: Gabungkan activity status + review status agar mentor bisa set Disetujui/Revisi
-// di kolom Activities Status tanpa ditolak data-validation
-const DAILY_STATUS_ALL_OPTIONS = ['Done', 'On Progress', 'Cancelled', 'Rescheduled', 'Disetujui', 'Revisi', 'Menunggu'];
+const DAILY_REVIEW_OPTIONS = ['Menunggu', 'Disetujui', 'Revisi', 'Ditolak'];
 
 const KANBAN_PRIORITY_OPTIONS = ['Low', 'Medium', 'High', 'Urgent'];
 const KANBAN_STATUS_OPTIONS = ['To Do', 'In Progress', 'In Review', 'Done', 'Blocked'];
-const KANBAN_REVIEW_OPTIONS = ['Menunggu', 'Disetujui', 'Revisi'];
+const KANBAN_REVIEW_OPTIONS = ['Menunggu', 'Disetujui', 'Revisi', 'Ditolak'];
+
+const DAILY_STATUS_ALL_OPTIONS = ACTIVITY_STATUS_OPTIONS.concat(DAILY_REVIEW_OPTIONS);
 
 function getLastDataRow(sheet) {
   if (!sheet) return 0;
@@ -45,8 +45,8 @@ function setupDatabase() {
         'Priority',
         'Status',
         'Due Date',
-        'Start',
-        'End',
+        'Start Date',
+        'End Date',
         'Evidence',
         'Review',
         'User_ID',
@@ -69,7 +69,8 @@ function setupDatabase() {
         'Achieved Target Evidence',
         'User_ID',
         'Nama_Peserta',
-        'Mentor_ID'
+        'Mentor_ID',
+        'Status Review'
       ]
     }
   ];
@@ -111,12 +112,18 @@ function setupDatabase() {
       }
 
       if (cfg.name === SHEETS.DAILY) {
-        if (sheet.getLastColumn() < 14) {
-          sheet.getRange(1, 12, 1, 3)
-            .setValues([['User_ID', 'Nama_Peserta', 'Mentor_ID']])
-            .setFontWeight('bold')
-            .setBackground('#16325B')
-            .setFontColor('#ffffff');
+        if (sheet.getLastColumn() < 15) {
+          var dailyHeaders = ['User_ID', 'Nama_Peserta', 'Mentor_ID', 'Status Review'];
+          var startCol = sheet.getLastColumn() < 12 ? 12 : sheet.getLastColumn() + 1;
+          var count = 15 - startCol + 1;
+          var headerSlice = dailyHeaders.slice(dailyHeaders.length - count);
+          if (count > 0) {
+            sheet.getRange(1, startCol, 1, count)
+              .setValues([headerSlice])
+              .setFontWeight('bold')
+              .setBackground('#16325B')
+              .setFontColor('#ffffff');
+          }
         }
         applyDailyDropdownRules_(sheet, 2, Math.max(sheet.getLastRow(), 500));
       }
@@ -168,34 +175,45 @@ function ensureKanbanRowDropdown_(sheet, rowNum) {
 
 // FIX: Dropdown Activities Status sekarang menerima semua status termasuk review
 function applyDailyDropdownRules_(sheet, startRow, numRows) {
-  const actRule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(DAILY_STATUS_ALL_OPTIONS, true)
+  var actRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(ACTIVITY_STATUS_OPTIONS, true)
     .setAllowInvalid(false)
     .build();
 
-  const tgtRule = SpreadsheetApp.newDataValidation()
+  var tgtRule = SpreadsheetApp.newDataValidation()
     .requireValueInList(TARGET_STATUS_OPTIONS, true)
+    .setAllowInvalid(false)
+    .build();
+
+  var reviewRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(DAILY_REVIEW_OPTIONS, true)
     .setAllowInvalid(false)
     .build();
 
   sheet.getRange(startRow, 7, numRows, 1).setDataValidation(actRule);
   sheet.getRange(startRow, 9, numRows, 1).setDataValidation(tgtRule);
+  sheet.getRange(startRow, 15, numRows, 1).setDataValidation(reviewRule);
 }
 
-// FIX: Per-row dropdown juga pakai gabungan options
 function ensureDailyRowDropdown_(sheet, rowNum) {
-  const actRule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(DAILY_STATUS_ALL_OPTIONS, true)
+  var actRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(ACTIVITY_STATUS_OPTIONS, true)
     .setAllowInvalid(false)
     .build();
 
-  const tgtRule = SpreadsheetApp.newDataValidation()
+  var tgtRule = SpreadsheetApp.newDataValidation()
     .requireValueInList(TARGET_STATUS_OPTIONS, true)
+    .setAllowInvalid(false)
+    .build();
+
+  var reviewRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(DAILY_REVIEW_OPTIONS, true)
     .setAllowInvalid(false)
     .build();
 
   sheet.getRange(rowNum, 7).setDataValidation(actRule);
   sheet.getRange(rowNum, 9).setDataValidation(tgtRule);
+  sheet.getRange(rowNum, 15).setDataValidation(reviewRule);
 }
 
 function doGet() {
@@ -230,6 +248,7 @@ function doPost(e) {
       case 'saveWeeklyPlan':
         return handleSaveKanban(authUser, req.data);
       case 'saveDailyActivity':
+      case 'submitDailyActivity':
         return handleSaveDailyActivity(authUser, req.data);
       case 'reviewItem':
         return handleReviewItem(authUser, req.data);
@@ -301,10 +320,12 @@ function handleGetData(user) {
       d.User_ID = uId;
       d.Nama_Peserta = uName;
 
-      // FIX: Map Activities Status ke legacy Status field untuk frontend mentor
-      const actStatus = String(d['Activities Status'] || '').trim();
-      if (['Disetujui', 'Revisi', 'Menunggu'].includes(actStatus)) {
-        d.Status = actStatus;
+      // Map Status Review (kolom 15) ke legacy Status field untuk frontend
+      var reviewStatus = String(d['Status Review'] || '').trim();
+      if (['Disetujui', 'Revisi', 'Menunggu', 'Ditolak'].includes(reviewStatus)) {
+        d.Status = reviewStatus;
+      } else {
+        d.Status = 'Menunggu';
       }
 
       return d;
@@ -404,14 +425,49 @@ function handleSaveKanban(user, payload) {
 
   const dueDateVal = String(payload.dueDate || payload.mingguKe || '').trim();
   const startVal = String(payload.start || '').trim();
-  const endVal = String(payload.end || '').trim();
+  // Auto-fill End Date saat status Done
+  const endVal = (statusVal === 'Done' && !String(payload.end || '').trim())
+    ? getTodayStr()
+    : String(payload.end || '').trim();
   const evidenceVal = String(payload.evidence || payload.outputLink || '').trim();
 
   const rawReview = String(payload.review || payload.catatan || 'Menunggu').trim();
   const reviewVal = KANBAN_REVIEW_OPTIONS.includes(rawReview) ? rawReview : 'Menunggu';
 
   const userIdVal = String(payload.userId || user.userId || '').trim();
-  const mentorIdVal = String(payload.mentorId || user.mentorId || '').trim();
+  const mentorIdVal = String(payload.mentorId || (user.role === 'Mentor' ? user.userId : user.mentorId) || '').trim();
+
+  // Mentor multi-assign: satu task per peserta yang dipilih
+  if (user.role === 'Mentor' && payload.assignedTo && Array.isArray(payload.assignedTo) && payload.assignedTo.length > 0) {
+    var lockM = LockService.getScriptLock();
+    lockM.waitLock(10000);
+    try {
+      var ssM = SpreadsheetApp.getActiveSpreadsheet();
+      var sheetM = ssM.getSheetByName(SHEETS.WEEKLY);
+      if (!sheetM) { setupDatabase(); sheetM = ssM.getSheetByName(SHEETS.WEEKLY); }
+      var lastRowM = getLastDataRow(sheetM);
+      var nextNoM = 1;
+      if (lastRowM >= 2) {
+        var noColM = sheetM.getRange(2, 1, lastRowM - 1, 1).getValues().flat().map(Number).filter(function(n){return !isNaN(n);});
+        if (noColM.length > 0) nextNoM = Math.max.apply(null, noColM) + 1;
+      }
+      var created = [];
+      payload.assignedTo.forEach(function(assignee) {
+        var aUserId = String(assignee.userId || '').trim();
+        var aUserName = String(assignee.nama || '').trim();
+        var newRowM = getLastDataRow(sheetM) + 1;
+        sheetM.getRange(newRowM, 1, 1, 12).setValues([[
+          nextNoM, taskVal, aUserName, priorityVal, statusVal, dueDateVal, startVal, endVal, evidenceVal, reviewVal, aUserId, String(user.userId || '').trim()
+        ]]);
+        ensureKanbanRowDropdown_(sheetM, newRowM);
+        created.push({ rowIndex: newRowM, no: nextNoM, userId: aUserId });
+        nextNoM++;
+      });
+      return jsonResponse({ status: 'success', message: created.length + ' task berhasil ditugaskan.', data: { items: created } });
+    } finally {
+      lockM.releaseLock();
+    }
+  }
 
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
@@ -470,7 +526,6 @@ function handleSaveKanban(user, payload) {
         userIdVal || existingUserId,
         mentorIdVal || existingMentorId
       ]]);
-      sheet.getRange(targetRow, 7, 1, 2).setNumberFormat('@');
       ensureKanbanRowDropdown_(sheet, targetRow);
 
       return jsonResponse({
@@ -503,7 +558,6 @@ function handleSaveKanban(user, payload) {
       userIdVal,
       mentorIdVal
     ]]);
-    sheet.getRange(newRow, 7, 1, 2).setNumberFormat('@');
     ensureKanbanRowDropdown_(sheet, newRow);
 
     return jsonResponse({
@@ -558,12 +612,18 @@ function handleSaveDailyActivity(user, payload) {
       sheet = ss.getSheetByName(SHEETS.DAILY);
     }
 
-    if (sheet.getLastColumn() < 14) {
-      sheet.getRange(1, 12, 1, 3)
-        .setValues([['User_ID', 'Nama_Peserta', 'Mentor_ID']])
-        .setFontWeight('bold')
-        .setBackground('#16325B')
-        .setFontColor('#ffffff');
+    if (sheet.getLastColumn() < 15) {
+      // Ensure all 15 columns exist
+      var missingStart = sheet.getLastColumn() + 1;
+      var allDailyHeaders = ['No','Date','Start','End','Duration','Activities','Activities Status','Target Desc','Target Status','Note','Achieved Target Evidence','User_ID','Nama_Peserta','Mentor_ID','Status Review'];
+      if (missingStart <= 15) {
+        var missing = allDailyHeaders.slice(missingStart - 1);
+        sheet.getRange(1, missingStart, 1, missing.length)
+          .setValues([missing])
+          .setFontWeight('bold')
+          .setBackground('#16325B')
+          .setFontColor('#ffffff');
+      }
     }
 
     const lastRow = getLastDataRow(sheet);
@@ -582,22 +642,76 @@ function handleSaveDailyActivity(user, payload) {
     }
 
     if (targetRow !== -1) {
-      const existingNo = sheet.getRange(targetRow, 1).getValue() || (targetRow - 1);
-      sheet.getRange(targetRow, 1, 1, 14).setValues([[
+      var rowMentorId = sheet.getLastColumn() >= 14 ? String(sheet.getRange(targetRow, 14).getValue() || '').trim() : '';
+      var rowUserId = sheet.getLastColumn() >= 12 ? String(sheet.getRange(targetRow, 12).getValue() || '').trim() : '';
+      var existingNo = sheet.getRange(targetRow, 1).getValue() || (targetRow - 1);
+      var existingReview = sheet.getLastColumn() >= 15 ? String(sheet.getRange(targetRow, 15).getValue() || 'Menunggu').trim() : 'Menunggu';
+
+      // Mentor boleh edit status aktivitas dan status target milik anak bimbingannya
+      if (user.role === 'Mentor') {
+        if (rowMentorId && rowMentorId !== String(user.userId).trim()) {
+          return jsonResponse({ status: 'error', message: 'Anda bukan mentor dari peserta ini.' });
+        }
+        var mentorActivitiesStatusVal = activitiesStatusVal;
+        if (payload.activitiesStatus && ACTIVITY_STATUS_OPTIONS.includes(payload.activitiesStatus)) {
+          mentorActivitiesStatusVal = payload.activitiesStatus;
+        }
+        var mentorTargetStatusVal = targetStatusVal;
+        if (payload.targetStatus && TARGET_STATUS_OPTIONS.includes(payload.targetStatus)) {
+          mentorTargetStatusVal = payload.targetStatus;
+        }
+        sheet.getRange(targetRow, 1, 1, 15).setValues([[
+          existingNo,
+          dateVal,
+          startVal,
+          endVal,
+          durationVal,
+          activitiesVal,
+          mentorActivitiesStatusVal,
+          targetDescVal,
+          mentorTargetStatusVal,
+          noteVal,
+          evidenceVal,
+          rowUserId || userIdVal,
+          userNameVal,
+          rowMentorId || mentorIdVal,
+          existingReview
+        ]]);
+        sheet.getRange(targetRow, 3, 1, 2).setNumberFormat('@');
+        ensureDailyRowDropdown_(sheet, targetRow);
+
+        return jsonResponse({
+          status: 'success',
+          message: 'Daily_Activity baris ke-' + targetRow + ' berhasil diperbarui.',
+          data: { rowIndex: targetRow, no: existingNo }
+        });
+      }
+
+      // Peserta mengupdate: pertahankan Status Review yang ada,
+      // dan pastikan Activities Status tidak tertimpa oleh Status Review
+      var pesertaActivitiesStatusVal = activitiesStatusVal;
+      if (!ACTIVITY_STATUS_OPTIONS.includes(pesertaActivitiesStatusVal)) {
+        pesertaActivitiesStatusVal = String(sheet.getRange(targetRow, 7).getValue() || 'Done').trim();
+      }
+      if (!ACTIVITY_STATUS_OPTIONS.includes(pesertaActivitiesStatusVal)) {
+        pesertaActivitiesStatusVal = 'Done';
+      }
+      sheet.getRange(targetRow, 1, 1, 15).setValues([[
         existingNo,
         dateVal,
         startVal,
         endVal,
         durationVal,
         activitiesVal,
-        activitiesStatusVal,
+        pesertaActivitiesStatusVal,
         targetDescVal,
         targetStatusVal,
         noteVal,
         evidenceVal,
         userIdVal,
         userNameVal,
-        mentorIdVal
+        mentorIdVal,
+        existingReview
       ]]);
       sheet.getRange(targetRow, 3, 1, 2).setNumberFormat('@');
       ensureDailyRowDropdown_(sheet, targetRow);
@@ -618,7 +732,7 @@ function handleSaveDailyActivity(user, payload) {
     }
 
     const newRow = lastRow + 1;
-    sheet.getRange(newRow, 1, 1, 14).setValues([[
+    sheet.getRange(newRow, 1, 1, 15).setValues([[
       nextNo,
       dateVal,
       startVal,
@@ -632,7 +746,8 @@ function handleSaveDailyActivity(user, payload) {
       evidenceVal,
       userIdVal,
       userNameVal,
-      mentorIdVal
+      mentorIdVal,
+      'Menunggu'
     ]]);
     sheet.getRange(newRow, 3, 1, 2).setNumberFormat('@');
     ensureDailyRowDropdown_(sheet, newRow);
@@ -647,13 +762,11 @@ function handleSaveDailyActivity(user, payload) {
   }
 }
 
-// FIX: reviewItem sekarang juga update dropdown rule sebelum setValue,
-// dan untuk daily juga menyimpan catatan mentor di kolom Note (kolom 10)
 function handleReviewItem(user, payload) {
   if (user.role !== 'Mentor') {
     return jsonResponse({ status: 'error', message: 'Hanya Mentor yang dapat melakukan review.' });
   }
-  if (!payload || !payload.id || !['Disetujui', 'Revisi', 'Menunggu'].includes(payload.status)) {
+  if (!payload || !payload.id || !['Disetujui', 'Revisi', 'Menunggu', 'Ditolak'].includes(payload.status)) {
     return jsonResponse({ status: 'error', message: 'Payload review tidak valid.' });
   }
 
@@ -675,28 +788,35 @@ function handleReviewItem(user, payload) {
 
     const noValues = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
 
-    for (let i = 0; i < noValues.length; i++) {
+    for (var i = 0; i < noValues.length; i++) {
       if (String(noValues[i][0]).trim() === String(payload.id).trim()) {
-        const rowNum = i + 2;
+        var rowNum = i + 2;
 
         if (isKanban) {
-          // Kanban: mentor ID di kolom 12 (index 11), review di kolom 10
-          const rowMentorId = sheet.getLastColumn() >= 12 ? String(sheet.getRange(rowNum, 12).getValue() || '').trim() : '';
+          var rowMentorId = sheet.getLastColumn() >= 12 ? String(sheet.getRange(rowNum, 12).getValue() || '').trim() : '';
           if (rowMentorId && rowMentorId !== String(user.userId).trim()) {
             return jsonResponse({ status: 'error', message: 'Anda bukan mentor dari peserta ini.' });
           }
           ensureKanbanRowDropdown_(sheet, rowNum);
           sheet.getRange(rowNum, 10).setValue(payload.status);
         } else {
-          // Daily: mentor ID di kolom 14 (index 13), Activities Status di kolom 7
-          const rowMentorId = sheet.getLastColumn() >= 14 ? String(sheet.getRange(rowNum, 14).getValue() || '').trim() : '';
-          if (rowMentorId && rowMentorId !== String(user.userId).trim()) {
+          // Daily: Status Review di kolom 15, Mentor_ID di kolom 14
+          var dailyMentorId = sheet.getLastColumn() >= 14 ? String(sheet.getRange(rowNum, 14).getValue() || '').trim() : '';
+          if (dailyMentorId && dailyMentorId !== String(user.userId).trim()) {
             return jsonResponse({ status: 'error', message: 'Anda bukan mentor dari peserta ini.' });
           }
-          // Pastikan dropdown menerima nilai review sebelum setValue
           ensureDailyRowDropdown_(sheet, rowNum);
-          sheet.getRange(rowNum, 7).setValue(payload.status);
+          // Status Review → kolom 15
+          sheet.getRange(rowNum, 15).setValue(payload.status);
 
+          // Mentor bisa ubah Activities Status (kolom 7) jika dikirim
+          if (payload.activitiesStatus && ACTIVITY_STATUS_OPTIONS.includes(payload.activitiesStatus)) {
+            sheet.getRange(rowNum, 7).setValue(payload.activitiesStatus);
+          }
+          // Mentor bisa ubah Target Status (kolom 9) jika dikirim
+          if (payload.targetStatus && TARGET_STATUS_OPTIONS.includes(payload.targetStatus)) {
+            sheet.getRange(rowNum, 9).setValue(payload.targetStatus);
+          }
           // Simpan catatan mentor di kolom Note (kolom 10) jika ada
           if (payload.catatan) {
             sheet.getRange(rowNum, 10).setValue(String(payload.catatan).trim());

@@ -25,6 +25,8 @@ import {
   getKanbanPriority,
   getKanbanStatus,
   getKanbanDueDate,
+  getKanbanStartDate,
+  getKanbanEndDate,
   getKanbanReview,
   getKanbanEvidence
 } from '../types';
@@ -86,9 +88,9 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
     task: '',
     priority: 'Medium' as KanbanPriority,
     status: 'To Do' as KanbanStatus,
-    dueDate: data.today,
-    start: '08:00',
-    end: '17:00',
+    dueDate: '',
+    start: data.today,
+    end: '',
     evidence: '',
   });
   const [kanbanLoading, setKanbanLoading] = useState(false);
@@ -130,12 +132,11 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
 
   // Stats calculation
   const approvedDaily = data.dailyActivities.filter(d => {
-    const st = getDailyActivitiesStatus(d);
-    return st === 'Done' || d.Status === 'Disetujui';
+    return d.Status === 'Disetujui';
   }).length;
   const inProgressDaily = data.dailyActivities.filter(d => {
     const st = getDailyActivitiesStatus(d);
-    return st === 'On Progress' || d.Status === 'Menunggu';
+    return st === 'On Progress' && d.Status !== 'Disetujui';
   }).length;
   const totalMinutes = data.dailyActivities.reduce((acc, d) => {
     const dur = Number(d.Duration);
@@ -244,9 +245,9 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
       task: '',
       priority: 'Medium',
       status: 'To Do',
-      dueDate: data.today,
-      start: '08:00',
-      end: '17:00',
+      dueDate: '',
+      start: data.today,
+      end: '',
       evidence: '',
     });
     setKanbanError('');
@@ -259,9 +260,9 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
       task: getKanbanTask(item),
       priority: getKanbanPriority(item),
       status: getKanbanStatus(item),
-      dueDate: getKanbanDueDate(item) !== '-' ? getKanbanDueDate(item) : data.today,
-      start: item.Start || '08:00',
-      end: item.End || '17:00',
+      dueDate: getKanbanDueDate(item) !== '-' ? getKanbanDueDate(item) : '',
+      start: getKanbanStartDate(item) !== '-' ? getKanbanStartDate(item) : '',
+      end: getKanbanEndDate(item) !== '-' ? getKanbanEndDate(item) : '',
       evidence: getKanbanEvidence(item),
     });
     setKanbanError('');
@@ -280,8 +281,8 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
         priority: getKanbanPriority(item),
         status: newStatus,
         dueDate: getKanbanDueDate(item),
-        start: item.Start || '',
-        end: item.End || '',
+        start: getKanbanStartDate(item) !== '-' ? getKanbanStartDate(item) : '',
+        end: newStatus === 'Done' ? (getKanbanEndDate(item) !== '-' ? getKanbanEndDate(item) : data.today) : (getKanbanEndDate(item) !== '-' ? getKanbanEndDate(item) : ''),
         evidence: getKanbanEvidence(item),
         review: getKanbanReview(item),
         targetMingguan: getKanbanTask(item),
@@ -354,33 +355,23 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight mt-1">
-              {activeTab === 'daily' ? 'Personal Daily Activities' : 'Kanban Task Management'}
+              {activeTab === 'daily' ? 'Daily Activities' : 'Kanban Task Management'}
             </h1>
             <p className="text-slate-500 dark:text-[#858585] text-xs sm:text-sm mt-1 max-w-xl leading-relaxed">
               {activeTab === 'daily'
                 ? 'Lembar catatan aktivitas harian resmi PT. Shelter Indonesia Gemilang.'
-                : 'Papan manajemen tugas dan proyek magang berbasis Kanban board interaktif.'}
+                : 'Tabel manajemen tugas dan proyek magang.'}
             </p>
           </div>
 
           <div className="flex items-center gap-2.5 self-start sm:self-center">
-            {activeTab === 'daily' ? (
-              <button
-                onClick={openNewDaily}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#0b4e8c] hover:bg-[#083b6b] dark:bg-[#0e639c] dark:hover:bg-[#1177bb] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                Tambah Baris Aktivitas
-              </button>
-            ) : (
-              <button
-                onClick={openNewKanban}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#0b4e8c] hover:bg-[#083b6b] dark:bg-[#0e639c] dark:hover:bg-[#1177bb] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                Tambah Task Kanban
-              </button>
-            )}
+            <button
+              onClick={activeTab === 'daily' ? openNewDaily : openNewKanban}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#0b4e8c] hover:bg-[#083b6b] dark:bg-[#0e639c] dark:hover:bg-[#1177bb] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              {activeTab === 'daily' ? 'Tambah Aktivitas' : 'Tambah Task Kanban'}
+            </button>
           </div>
         </div>
 
@@ -480,7 +471,6 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
             }
             deletingId={deletingId}
             onStatusChange={handleQuickStatusChange}
-            onAddNew={openNewKanban}
             emptyMessage="Belum ada task di lembar Kanban Anda."
           />
         </div>
@@ -732,7 +722,15 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
               </label>
               <select
                 value={kanbanForm.status}
-                onChange={e => setKanbanForm({ ...kanbanForm, status: e.target.value as KanbanStatus })}
+                onChange={e => {
+                  const newStatus = e.target.value as KanbanStatus;
+                  const updated = { ...kanbanForm, status: newStatus };
+                  // Auto-fill End Date when status = Done
+                  if (newStatus === 'Done' && !kanbanForm.end) {
+                    updated.end = data.today;
+                  }
+                  setKanbanForm(updated);
+                }}
                 className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-white dark:bg-[#1e1e1e] text-slate-900 dark:text-white font-semibold"
               >
                 {KANBAN_STATUS_OPTIONS.map(opt => (
@@ -751,7 +749,7 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
               </label>
               <input
                 type="date"
-                value={kanbanForm.dueDate.includes('-') && kanbanForm.dueDate.length === 10 ? kanbanForm.dueDate : data.today}
+                value={kanbanForm.dueDate.includes('-') && kanbanForm.dueDate.length === 10 ? kanbanForm.dueDate : ''}
                 onChange={e => setKanbanForm({ ...kanbanForm, dueDate: e.target.value })}
                 className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/50 dark:bg-[#1e1e1e] text-slate-900 dark:text-white"
               />
@@ -759,25 +757,25 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">
-                Start Time
+                Start Date
               </label>
               <input
-                type="time"
-                value={kanbanForm.start}
+                type="date"
+                value={kanbanForm.start.includes('-') && kanbanForm.start.length === 10 ? kanbanForm.start : ''}
                 onChange={e => setKanbanForm({ ...kanbanForm, start: e.target.value })}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/50 dark:bg-[#1e1e1e] text-slate-900 dark:text-white font-mono"
+                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/50 dark:bg-[#1e1e1e] text-slate-900 dark:text-white"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1">
-                End Time
+                End Date <span className="text-slate-400 dark:text-[#858585] font-normal">(otomatis saat Done)</span>
               </label>
               <input
-                type="time"
-                value={kanbanForm.end}
+                type="date"
+                value={kanbanForm.end.includes('-') && kanbanForm.end.length === 10 ? kanbanForm.end : ''}
                 onChange={e => setKanbanForm({ ...kanbanForm, end: e.target.value })}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/50 dark:bg-[#1e1e1e] text-slate-900 dark:text-white font-mono"
+                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#383838] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc] bg-slate-50/50 dark:bg-[#1e1e1e] text-slate-900 dark:text-white"
               />
             </div>
           </div>

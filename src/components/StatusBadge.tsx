@@ -90,7 +90,7 @@ export const StatusBadge: React.FC<Props> = ({ status, size = 'md' }) => {
     );
   }
 
-  if (clean === 'Not Achieved' || clean === 'Revisi') {
+  if (clean === 'Not Achieved') {
     return (
       <span
         className={`inline-flex items-center gap-1.5 font-medium rounded-full transition-colors ${
@@ -98,7 +98,33 @@ export const StatusBadge: React.FC<Props> = ({ status, size = 'md' }) => {
         } bg-amber-100/80 text-amber-900 border border-amber-300 dark:bg-[#342c15] dark:text-[#dcdcaa] dark:border-[#5a4d22]`}
       >
         <span className="w-1.5 h-1.5 rounded-full bg-amber-600 dark:bg-[#cca700]" />
-        {clean === 'Revisi' ? 'Perlu Revisi' : 'Not Achieved'}
+        Not Achieved
+      </span>
+    );
+  }
+
+  if (clean === 'Revisi') {
+    return (
+      <span
+        className={`inline-flex items-center gap-1.5 font-medium rounded-full transition-colors ${
+          isSm ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-xs'
+        } bg-amber-100/80 text-amber-900 border border-amber-300 dark:bg-[#342c15] dark:text-[#dcdcaa] dark:border-[#5a4d22]`}
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-600 dark:bg-[#cca700]" />
+        Perlu Revisi
+      </span>
+    );
+  }
+
+  if (clean === 'Ditolak') {
+    return (
+      <span
+        className={`inline-flex items-center gap-1.5 font-medium rounded-full transition-colors ${
+          isSm ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-xs'
+        } bg-rose-100/80 text-rose-800 border border-rose-300 dark:bg-[#341b1d] dark:text-[#f48771] dark:border-[#5c2427]`}
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-rose-600 dark:bg-[#f48771]" />
+        Ditolak
       </span>
     );
   }

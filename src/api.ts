@@ -14,7 +14,7 @@ const MOCK_DB_KEY = `${STORAGE_PREFIX}mock_db_v1`;
 // GANTI dengan URL /exec dari deployment Web App yang AKTIF (Deploy > Manage deployments).
 // Bisa juga diatur lewat VITE_APPS_SCRIPT_URL di .env (nilai .env menimpa default ini).
 const DEFAULT_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbwYMaDvt2dDvwG--qqR5dZTSmPdKI631x7JMDTXQyOUfmh0q1vwmGmvczSL8E9l0cEVPw/exec";
+  "https://script.google.com/macros/s/AKfycbxYP23NGXLqAPTsAyz9vFE_0CDmSiOQpjeKM_WUUK5RAIkmqmnUjSOCbKVEoSglRBduAA/exec";
 
 // Set VITE_USE_MOCK=true di .env untuk tes offline memakai localStorage (tanpa Google Apps Script).
 const USE_MOCK = String(import.meta.env.VITE_USE_MOCK || "") === "true";
@@ -365,6 +365,7 @@ async function sendRequest<T>(
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(payload),
+      redirect: "follow",
     });
 
     const text = await res.text();
@@ -556,6 +557,51 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
     const reviewVal = String(
       payload.review || payload.catatan || "Menunggu",
     ).trim();
+
+    // Mentor multi-assign mock support
+    if (
+      user.role === "Mentor" &&
+      payload.assignedTo &&
+      Array.isArray(payload.assignedTo) &&
+      payload.assignedTo.length > 0
+    ) {
+      const created: any[] = [];
+      payload.assignedTo.forEach((assignee: any) => {
+        const existingNos = db.weeklyPlans
+          .map((w) => Number(w.No))
+          .filter((n) => !isNaN(n));
+        const nextNo =
+          existingNos.length > 0 ? Math.max(...existingNos) + 1 : 1;
+        db.weeklyPlans.push({
+          No: nextNo,
+          Task: taskVal,
+          User: String(assignee.nama || "").trim(),
+          Priority: priorityVal,
+          Status: statusVal,
+          "Due Date": dueDateVal,
+          dueDate: dueDateVal,
+          Start: startVal,
+          End: endVal,
+          Evidence: evidenceVal,
+          Review: reviewVal,
+          User_ID: String(assignee.userId || "").trim(),
+          Mentor_ID: user.userId,
+          Plan_ID: "WP-" + String(nextNo).padStart(3, "0"),
+          Tanggal_Input: getTodayStr(),
+          Minggu_Ke: dueDateVal,
+          Nama_Peserta: String(assignee.nama || "").trim(),
+          Target_Mingguan: taskVal,
+          Catatan_Mentor: "",
+        });
+        created.push({ no: nextNo, userId: assignee.userId });
+      });
+      saveMockDB(db);
+      return {
+        status: "success",
+        message: `${created.length} task berhasil ditugaskan.`,
+        data: { items: created } as unknown as T,
+      };
+    }
 
     const targetId = String(
       payload.no || payload.planId || payload.id || "",
@@ -754,14 +800,23 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
       };
     }
     const payload = req.data || {};
-    if (!payload.id || !["Disetujui", "Revisi"].includes(payload.status)) {
+    if (
+      !payload.id ||
+      !["Disetujui", "Revisi", "Ditolak"].includes(payload.status)
+    ) {
       return { status: "error", message: "Payload review tidak valid." };
     }
 
     const target =
       payload.type === "weekly"
-        ? db.weeklyPlans.find((w) => w.Plan_ID === payload.id)
-        : db.dailyActivities.find((d) => d.Log_ID === payload.id);
+        ? db.weeklyPlans.find(
+            (w) =>
+              w.Plan_ID === payload.id || String(w.No) === String(payload.id),
+          )
+        : db.dailyActivities.find(
+            (d) =>
+              d.Log_ID === payload.id || String(d.No) === String(payload.id),
+          );
 
     if (!target) return { status: "error", message: "Item tidak ditemukan." };
     if (target.Mentor_ID !== user.userId)
@@ -772,6 +827,15 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
 
     target.Status = payload.status;
     target.Catatan_Mentor = String(payload.catatan || "").trim();
+    if (payload.type !== "weekly") {
+      const dailyTarget = target as DailyActivity;
+      if (payload.activitiesStatus) {
+        dailyTarget["Activities Status"] = payload.activitiesStatus;
+      }
+      if (payload.targetStatus) {
+        dailyTarget["Target Status"] = payload.targetStatus;
+      }
+    }
     saveMockDB(db);
     return {
       status: "success",
@@ -919,6 +983,7 @@ export const api = {
       review?: string;
       userId?: string;
       mentorId?: string;
+      assignedTo?: Array<{ userId: string; nama: string }>;
       id?: string;
       planId?: string;
       targetMingguan?: string;
@@ -962,8 +1027,10 @@ export const api = {
     data: {
       id: string;
       type: "weekly" | "daily";
-      status: "Disetujui" | "Revisi";
+      status: "Menunggu" | "Disetujui" | "Revisi" | "Ditolak";
       catatan: string;
+      activitiesStatus?: string;
+      targetStatus?: string;
     },
   ) => sendRequest({ action: "reviewItem", email, pin, data }),
   deleteItem: (

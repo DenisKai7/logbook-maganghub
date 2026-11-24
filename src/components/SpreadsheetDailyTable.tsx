@@ -16,6 +16,7 @@ import {
   getDailyEvidence,
   getDailyMenteeName,
   isTotalSummaryRow,
+  getDailyStatusReview,
 } from '../types';
 import { StatusBadge } from './StatusBadge';
 import {
@@ -24,7 +25,7 @@ import {
   ExternalLink,
   Plus,
   Menu,
-  Check,
+  Printer,
   MessageSquare,
   ChevronDown
 } from 'lucide-react';
@@ -38,8 +39,8 @@ interface Props {
   deletingId?: string | null;
   // Mentor Review Actions
   mentorMode?: boolean;
-  onQuickApprove?: (id: string) => void;
   onReview?: (item: DailyActivity) => void;
+  onReviewWithNote?: (item: DailyActivity) => void;
   // Google Sheets bottom tabs
   sheetTabs?: string[];
   activeSheetTab?: string;
@@ -57,8 +58,8 @@ export const SpreadsheetDailyTable: React.FC<Props> = ({
   onDelete,
   deletingId,
   mentorMode = false,
-  onQuickApprove,
   onReview,
+  onReviewWithNote,
   sheetTabs,
   activeSheetTab,
   onSelectSheetTab,
@@ -76,10 +77,7 @@ export const SpreadsheetDailyTable: React.FC<Props> = ({
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
           <span className="font-semibold text-xs text-slate-800 dark:text-white">
-            Daily_Activity
-          </span>
-          <span className="text-[11px] text-slate-400 dark:text-[#858585]">
-            (Personal Daily Activities)
+            Daily Activities
           </span>
         </div>
         <span className="text-[11px] font-mono text-slate-500 dark:text-[#858585]">
@@ -161,6 +159,12 @@ export const SpreadsheetDailyTable: React.FC<Props> = ({
                   <ChevronDown className="w-3 h-3 text-blue-200/70" />
                 </div>
               </th>
+              <th className="py-2.5 px-3 text-center border-r border-blue-900/50 min-w-[130px] whitespace-nowrap">
+                <div className="flex items-center justify-center gap-1">
+                  <span>Status Review</span>
+                  <ChevronDown className="w-3 h-3 text-blue-200/70" />
+                </div>
+              </th>
               {(editable || mentorMode) && (
                 <th className="py-2.5 px-3 text-center w-28 whitespace-nowrap">
                   Aksi
@@ -174,7 +178,7 @@ export const SpreadsheetDailyTable: React.FC<Props> = ({
             {validActivities.length === 0 ? (
               <tr>
                 <td
-                  colSpan={editable || mentorMode ? (showMenteeColumn ? 13 : 12) : (showMenteeColumn ? 12 : 11)}
+                  colSpan={editable || mentorMode ? (showMenteeColumn ? 15 : 14) : (showMenteeColumn ? 13 : 12)}
                   className="py-12 text-center text-slate-400 dark:text-[#858585] bg-slate-50/50 dark:bg-[#252526]"
                 >
                   {emptyMessage}
@@ -299,6 +303,22 @@ export const SpreadsheetDailyTable: React.FC<Props> = ({
                       )}
                     </td>
 
+                    {/* Status Review */}
+                    <td className="py-2.5 px-3 text-center border-r border-[#cfe6ce] dark:border-[#2d2d2d] whitespace-nowrap">
+                      {mentorMode ? (
+                        <button
+                          onClick={() => onReviewWithNote && onReviewWithNote(item)}
+                          className="inline-flex items-center gap-1 text-[10px] font-semibold rounded px-2 py-0.5 border border-slate-200 dark:border-[#383838] bg-white/70 dark:bg-[#1e1e1e] text-slate-700 dark:text-[#cccccc] hover:bg-slate-50 dark:hover:bg-[#252526] focus:outline-none cursor-pointer"
+                          title="Klik untuk update status & catatan"
+                        >
+                          <StatusBadge status={getDailyStatusReview(item)} size="sm" />
+                          <MessageSquare className="w-3 h-3 text-slate-400 dark:text-[#858585]" />
+                        </button>
+                      ) : (
+                        <StatusBadge status={getDailyStatusReview(item)} size="sm" />
+                      )}
+                    </td>
+
                     {/* Action Column for Peserta */}
                     {editable && (
                       <td className="py-2.5 px-2 text-center whitespace-nowrap">
@@ -331,23 +351,13 @@ export const SpreadsheetDailyTable: React.FC<Props> = ({
                     {mentorMode && (
                       <td className="py-2.5 px-2 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1">
-                          {isPending && onQuickApprove && (
-                            <button
-                              onClick={() => onQuickApprove(item.Log_ID || String(no))}
-                              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-emerald-800 dark:text-[#4ec9b0] bg-emerald-100 hover:bg-emerald-200 dark:bg-[#1b3424] dark:hover:bg-[#23452f] rounded border border-emerald-300 dark:border-[#2e6040] transition-colors cursor-pointer"
-                              title="Setujui Langsung (Done)"
-                            >
-                              <Check className="w-3 h-3 text-emerald-600 dark:text-[#4ec9b0]" />
-                              <span>Done</span>
-                            </button>
-                          )}
                           {onReview && (
                             <button
                               onClick={() => onReview(item)}
                               className="p-1.5 text-slate-600 dark:text-[#cccccc] hover:text-[#0b4e8c] dark:hover:text-white rounded hover:bg-white dark:hover:bg-[#252526] border border-slate-300 dark:border-[#383838] transition-colors cursor-pointer"
-                              title="Tinjau & Beri Catatan"
+                              title="Lihat / Print Laporan"
                             >
-                              <MessageSquare className="w-3.5 h-3.5" />
+                              <Printer className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </div>
