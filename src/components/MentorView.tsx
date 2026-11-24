@@ -17,6 +17,8 @@ import {
   getKanbanPriority,
   getKanbanStatus,
   getKanbanDueDate,
+  getKanbanStartDate,
+  getKanbanEndDate,
   getKanbanReview,
   getKanbanEvidence,
   getDailyDate,
@@ -104,12 +106,21 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
     targetDesc?: string;
     targetStatus?: string;
     note?: string;
+    // Kanban-specific fields for print view
+    priority?: string;
+    kanbanStatus?: string;
+    dueDate?: string;
+    kanbanStart?: string;
+    kanbanEnd?: string;
+    evidence?: string;
+    assignedTo?: string;
+    mentorName?: string;
   } | null>(null);
   const [reviewNote, setReviewNote] = useState('');
 
   // Review-with-note inline modal state
   const [reviewNoteModalOpen, setReviewNoteModalOpen] = useState(false);
-  const [reviewNoteTarget, setReviewNoteTarget] = useState<DailyActivity | null>(null);
+  const [reviewNoteTarget, setReviewNoteTarget] = useState<DailyActivity | KanbanItem | null>(null);
   const [reviewNoteStatus, setReviewNoteStatus] = useState<'Menunggu' | 'Disetujui' | 'Revisi' | 'Ditolak'>('Menunggu');
   const [reviewNoteText, setReviewNoteText] = useState('');
   const [reviewNoteLoading, setReviewNoteLoading] = useState(false);
@@ -272,7 +283,7 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
     catatan = '',
     outputLink?: string,
     kendala?: string,
-    dailyFields?: {
+    extraFields?: {
       date?: string;
       start?: string;
       end?: string;
@@ -281,6 +292,15 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
       targetDesc?: string;
       targetStatus?: string;
       note?: string;
+      // Kanban print fields
+      priority?: string;
+      kanbanStatus?: string;
+      dueDate?: string;
+      kanbanStart?: string;
+      kanbanEnd?: string;
+      evidence?: string;
+      assignedTo?: string;
+      mentorName?: string;
     }
   ) => {
     setReviewTarget({
@@ -293,7 +313,7 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
       kendala,
       currentStatus,
       catatan,
-      ...dailyFields
+      ...extraFields
     });
     setReviewNote(catatan || '');
     setReviewModalOpen(true);
@@ -317,10 +337,22 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
     }
   };
 
-  const openReviewWithNote = (item: DailyActivity) => {
+  const isKanbanItem = (item: DailyActivity | KanbanItem): item is KanbanItem => {
+    return !('Log_ID' in item) && !('Activities' in item);
+  };
+
+  const openReviewWithNote = (item: DailyActivity | KanbanItem) => {
     setReviewNoteTarget(item);
-    setReviewNoteStatus((getDailyStatusReview(item) as any) || 'Menunggu');
-    setReviewNoteText(item.Note || item.Catatan_Mentor || '');
+    if (isKanbanItem(item)) {
+      // Kanban item
+      setReviewNoteStatus((getKanbanReview(item) as any) || 'Menunggu');
+      setReviewNoteText(item.Catatan_Mentor || '');
+    } else {
+      // Daily activity
+      const dailyItem = item as DailyActivity;
+      setReviewNoteStatus((getDailyStatusReview(dailyItem) as any) || 'Menunggu');
+      setReviewNoteText(dailyItem.Note || dailyItem.Catatan_Mentor || '');
+    }
     setReviewNoteModalOpen(true);
   };
 
@@ -329,9 +361,15 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
     if (!reviewNoteTarget) return;
     setReviewNoteLoading(true);
     try {
+      const isKanban = isKanbanItem(reviewNoteTarget);
+      const kanbanTarget = reviewNoteTarget as KanbanItem;
+      const dailyTarget = reviewNoteTarget as DailyActivity;
+      const id = isKanban
+        ? String(kanbanTarget.Plan_ID || kanbanTarget.No)
+        : dailyTarget.Log_ID || String(dailyTarget.No);
       const res = await api.reviewItem(user.email, pin, {
-        id: reviewNoteTarget.Log_ID || String(reviewNoteTarget.No),
-        type: 'daily',
+        id,
+        type: isKanban ? 'weekly' : 'daily',
         status: reviewNoteStatus,
         catatan: reviewNoteText.trim(),
       });
@@ -1045,11 +1083,22 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                 `Task: ${getKanbanTask(item)}`,
                 getKanbanTask(item),
                 (getKanbanReview(item) as ItemStatus) || 'Menunggu',
-                '',
+                item.Catatan_Mentor || '',
                 getKanbanEvidence(item),
-                ''
+                '',
+                {
+                  priority: getKanbanPriority(item),
+                  kanbanStatus: getKanbanStatus(item),
+                  dueDate: getKanbanDueDate(item),
+                  kanbanStart: getKanbanStartDate(item),
+                  kanbanEnd: getKanbanEndDate(item),
+                  evidence: getKanbanEvidence(item),
+                  assignedTo: getKanbanUser(item, data.mentees),
+                  mentorName: user.nama,
+                }
               )
             }
+            onReviewWithNote={openReviewWithNote}
             sheetTabs={['Semua', ...data.mentees.map(m => m.nama)]}
             activeSheetTab={
               selectedMentee === 'all'
@@ -1077,15 +1126,24 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
       >
         {reviewTarget && (
           <div className="space-y-4 print:space-y-3" id="review-print-area">
+            {/* Print Header */}
+            <div className="hidden print:block mb-4 pb-3 border-b border-slate-200 dark:border-[#2d2d2d]">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Laporan {reviewTarget.type === 'kanban' ? 'Kanban Task' : 'Aktivitas Harian'}</h2>
+              <p className="text-xs text-slate-500 dark:text-[#858585] mt-1">Dicetak pada {new Date().toLocaleString('id-ID')}</p>
+              {reviewTarget.mentorName && (
+                <p className="text-xs text-slate-500 dark:text-[#858585]">Mentor: {reviewTarget.mentorName}</p>
+              )}
+            </div>
+
             <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838] text-xs space-y-2">
               <span className="font-semibold text-slate-500 dark:text-[#858585] uppercase tracking-wider block text-[10px]">
-                Deskripsi Peserta:
+                {reviewTarget.type === 'kanban' ? 'Deskripsi Task:' : 'Deskripsi Peserta:'}
               </span>
               <p className="text-slate-800 dark:text-[#cccccc] whitespace-pre-line leading-relaxed">{reviewTarget.content}</p>
 
               {reviewTarget.outputLink && (
                 <div className="pt-2 border-t border-slate-200 dark:border-[#2d2d2d] flex items-center gap-1">
-                  <span className="text-slate-500 dark:text-[#858585]">Output:</span>
+                  <span className="text-slate-500 dark:text-[#858585]">{reviewTarget.type === 'kanban' ? 'Evidence:' : 'Output:'}</span>
                   <a
                     href={
                       reviewTarget.outputLink.startsWith('http')
@@ -1129,6 +1187,35 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
               </div>
             )}
 
+            {reviewTarget.type === 'kanban' && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs print:grid-cols-3">
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838]">
+                  <span className="text-[10px] text-slate-400 dark:text-[#858585] block">Priority</span>
+                  <span className="font-medium text-slate-800 dark:text-[#cccccc]">{reviewTarget.priority || '-'}</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838]">
+                  <span className="text-[10px] text-slate-400 dark:text-[#858585] block">Task Status</span>
+                  <span className="font-medium text-slate-800 dark:text-[#cccccc]">{reviewTarget.kanbanStatus || '-'}</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838]">
+                  <span className="text-[10px] text-slate-400 dark:text-[#858585] block">Due Date</span>
+                  <span className="font-mono text-slate-700 dark:text-[#cccccc]">{reviewTarget.dueDate || '-'}</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838]">
+                  <span className="text-[10px] text-slate-400 dark:text-[#858585] block">Start</span>
+                  <span className="font-mono text-slate-700 dark:text-[#cccccc]">{reviewTarget.kanbanStart || '-'}</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838]">
+                  <span className="text-[10px] text-slate-400 dark:text-[#858585] block">End</span>
+                  <span className="font-mono text-slate-700 dark:text-[#cccccc]">{reviewTarget.kanbanEnd || '-'}</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838]">
+                  <span className="text-[10px] text-slate-400 dark:text-[#858585] block">Assigned To</span>
+                  <span className="font-medium text-slate-800 dark:text-[#cccccc]">{reviewTarget.assignedTo || '-'}</span>
+                </div>
+              </div>
+            )}
+
             {reviewTarget.type === 'daily' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838]">
@@ -1147,10 +1234,10 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
               <StatusBadge status={reviewTarget.currentStatus} size="sm" />
             </div>
 
-            {(reviewTarget.note || reviewNote) && (
+            {(reviewTarget.note || reviewNote || reviewTarget.catatan) && (
               <div className="p-3 rounded-lg bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838] text-xs">
                 <span className="text-[10px] text-slate-400 dark:text-[#858585] block mb-1">Catatan Mentor</span>
-                <p className="text-slate-800 dark:text-[#cccccc] whitespace-pre-line">{reviewNote || reviewTarget.note}</p>
+                <p className="text-slate-800 dark:text-[#cccccc] whitespace-pre-line">{reviewNote || reviewTarget.note || reviewTarget.catatan}</p>
               </div>
             )}
 
@@ -1180,7 +1267,11 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
         isOpen={reviewNoteModalOpen}
         onClose={() => setReviewNoteModalOpen(false)}
         title="Review & Catatan"
-        subtitle={reviewNoteTarget ? `${reviewNoteTarget.Nama_Peserta || 'Peserta'} — Aktivitas ${getDailyDate(reviewNoteTarget)}` : ''}
+        subtitle={reviewNoteTarget ? (
+          'Log_ID' in reviewNoteTarget || 'No' in reviewNoteTarget
+            ? `${(reviewNoteTarget as DailyActivity).Nama_Peserta || 'Peserta'} — Aktivitas ${getDailyDate(reviewNoteTarget as DailyActivity)}`
+            : `Task: ${getKanbanTask(reviewNoteTarget as KanbanItem)}`
+        ) : ''}
       >
         {reviewNoteTarget && (
           <form onSubmit={handleSubmitReviewWithNote} className="space-y-4">

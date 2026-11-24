@@ -14,7 +14,7 @@ const MOCK_DB_KEY = `${STORAGE_PREFIX}mock_db_v1`;
 // GANTI dengan URL /exec dari deployment Web App yang AKTIF (Deploy > Manage deployments).
 // Bisa juga diatur lewat VITE_APPS_SCRIPT_URL di .env (nilai .env menimpa default ini).
 const DEFAULT_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbxYP23NGXLqAPTsAyz9vFE_0CDmSiOQpjeKM_WUUK5RAIkmqmnUjSOCbKVEoSglRBduAA/exec";
+  "https://script.google.com/macros/s/AKfycbxhonQWiEiUkyLvGAHqhAl1-k5qVUWbfIDZmoLYfFep5ux9cYPBwGFe9d8xYJ8NoSH8TQ/exec";
 
 // Set VITE_USE_MOCK=true di .env untuk tes offline memakai localStorage (tanpa Google Apps Script).
 const USE_MOCK = String(import.meta.env.VITE_USE_MOCK || "") === "true";
@@ -627,7 +627,8 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
         target.Start = startVal;
         target.End = endVal;
         target.Evidence = evidenceVal;
-        target.Review = reviewVal;
+        // Jika peserta magang mengupdate kanban, reset Review ke Menunggu
+        target.Review = user.role === "Peserta" ? "Menunggu" : reviewVal;
         saveMockDB(db);
         return { status: "success", message: "Kanban berhasil diperbarui." };
       }
@@ -802,7 +803,7 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
     const payload = req.data || {};
     if (
       !payload.id ||
-      !["Disetujui", "Revisi", "Ditolak"].includes(payload.status)
+      !["Menunggu", "Disetujui", "Revisi", "Ditolak"].includes(payload.status)
     ) {
       return { status: "error", message: "Payload review tidak valid." };
     }
@@ -829,6 +830,8 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
     target.Catatan_Mentor = String(payload.catatan || "").trim();
     if (payload.type !== "weekly") {
       const dailyTarget = target as DailyActivity;
+      // Status Review tidak mengoverride Activities Status secara otomatis.
+      // Hanya override jika mentor kirim activitiesStatus yang valid.
       if (payload.activitiesStatus) {
         dailyTarget["Activities Status"] = payload.activitiesStatus;
       }

@@ -512,6 +512,10 @@ function handleSaveKanban(user, payload) {
         return jsonResponse({ status: 'error', message: 'Akses ditolak.' });
       }
 
+      // Jika peserta magang mengupdate kanban yang sudah ada, reset Review ke Menunggu
+      // agar mentor meninjau ulang perubahan tersebut.
+      const finalReviewVal = (user.role === 'Peserta') ? 'Menunggu' : reviewVal;
+
       sheet.getRange(targetRow, 1, 1, 12).setValues([[
         existingNo,
         taskVal,
@@ -522,7 +526,7 @@ function handleSaveKanban(user, payload) {
         startVal,
         endVal,
         evidenceVal,
-        reviewVal,
+        finalReviewVal,
         userIdVal || existingUserId,
         mentorIdVal || existingMentorId
       ]]);
@@ -809,15 +813,20 @@ function handleReviewItem(user, payload) {
           // Status Review → kolom 15
           sheet.getRange(rowNum, 15).setValue(payload.status);
 
-          // Mentor bisa ubah Activities Status (kolom 7) jika dikirim
+          // Activities Status (kolom 7) hanya diubah jika mentor kirim override valid.
+          // Status Review = Ditolak/Disetujui/Revisi/Menunggu TIDAK mengoverride
+          // Activities Status secara otomatis, agar tidak melanggar data validation
+          // spreadsheet (Done, On Progress, Cancelled, Rescheduled).
           if (payload.activitiesStatus && ACTIVITY_STATUS_OPTIONS.includes(payload.activitiesStatus)) {
             sheet.getRange(rowNum, 7).setValue(payload.activitiesStatus);
           }
-          // Mentor bisa ubah Target Status (kolom 9) jika dikirim
+
+          // Target Status (kolom 9) hanya diubah jika mentor kirim override
           if (payload.targetStatus && TARGET_STATUS_OPTIONS.includes(payload.targetStatus)) {
             sheet.getRange(rowNum, 9).setValue(payload.targetStatus);
           }
-          // Simpan catatan mentor di kolom Note (kolom 10) jika ada
+
+          // Catatan mentor di kolom Note (kolom 10)
           if (payload.catatan) {
             sheet.getRange(rowNum, 10).setValue(String(payload.catatan).trim());
           }

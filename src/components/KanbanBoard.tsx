@@ -27,6 +27,8 @@ import {
   Trash2,
   ExternalLink,
   ChevronDown,
+  MessageSquare,
+  Printer,
 } from 'lucide-react';
 
 interface Props {
@@ -41,6 +43,7 @@ interface Props {
   // Mentor Review mode
   mentorMode?: boolean;
   onReview?: (item: KanbanItem) => void;
+  onReviewWithNote?: (item: KanbanItem) => void;
   onAddNew?: () => void;
   sheetTabs?: string[];
   activeSheetTab?: string;
@@ -66,6 +69,7 @@ export const KanbanBoard: React.FC<Props> = ({
   onStatusChange,
   mentorMode = false,
   onReview,
+  onReviewWithNote,
   onAddNew,
   sheetTabs,
   activeSheetTab,
@@ -263,7 +267,18 @@ export const KanbanBoard: React.FC<Props> = ({
                         )}
                       </td>
                       <td className="py-2.5 px-3 text-center border-r border-[#cfe6ce] dark:border-[#2d2d2d] whitespace-nowrap">
-                        <StatusBadge status={review} size="sm" />
+                        {mentorMode ? (
+                          <button
+                            onClick={() => onReviewWithNote && onReviewWithNote(item)}
+                            className="inline-flex items-center gap-1 text-[10px] font-semibold rounded px-2 py-0.5 border border-slate-200 dark:border-[#383838] bg-white/70 dark:bg-[#1e1e1e] text-slate-700 dark:text-[#cccccc] hover:bg-slate-50 dark:hover:bg-[#252526] focus:outline-none cursor-pointer"
+                            title="Klik untuk update status review & catatan"
+                          >
+                            <StatusBadge status={review} size="sm" />
+                            <MessageSquare className="w-3 h-3 text-slate-400 dark:text-[#858585]" />
+                          </button>
+                        ) : (
+                          <StatusBadge status={review} size="sm" />
+                        )}
                       </td>
                       {(editable || mentorMode) && (
                         <td className="py-2.5 px-2 text-center whitespace-nowrap">
@@ -296,9 +311,9 @@ export const KanbanBoard: React.FC<Props> = ({
                                 type="button"
                                 onClick={() => onReview(item)}
                                 className="p-1.5 text-slate-600 dark:text-[#cccccc] hover:text-[#0b4e8c] dark:hover:text-white rounded hover:bg-white dark:hover:bg-[#252526] border border-slate-300 dark:border-[#383838] transition-colors cursor-pointer"
-                                title="Tinjau Task"
+                                title="Lihat / Print Laporan"
                               >
-                                Review
+                                <Printer className="w-3.5 h-3.5" />
                               </button>
                             )}
                           </div>
