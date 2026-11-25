@@ -21,7 +21,10 @@ import {
   getDailyNote,
   getDailyEvidence,
   getDailyNo,
+  isDailyEditable,
   getKanbanTask,
+  getKanbanPeserta,
+  getKanbanUser,
   getKanbanPriority,
   getKanbanStatus,
   getKanbanDueDate,
@@ -168,6 +171,10 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
   };
 
   const openEditDaily = (item: DailyActivity) => {
+    if (!isDailyEditable(item)) {
+      alert('Aktivitas yang sudah disetujui, revisi, atau ditolak tidak dapat diedit.');
+      return;
+    }
     setEditingDaily(item);
     const rawDate = item.Date || item.Tanggal || data.today;
     const durVal = item.Duration !== undefined && item.Duration !== '' ? item.Duration : computeDurationMinutes(item.Start || '08:00', item.End || '09:00');
@@ -255,6 +262,11 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
   };
 
   const openEditKanban = (item: KanbanItem) => {
+    const review = getKanbanReview(item);
+    if (review === 'Disetujui' || review === 'Ditolak') {
+      alert('Task yang sudah disetujui atau ditolak tidak dapat diedit.');
+      return;
+    }
     setEditingKanban(item);
     setKanbanForm({
       task: getKanbanTask(item),
@@ -270,12 +282,18 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
   };
 
   const handleQuickStatusChange = async (item: KanbanItem, newStatus: KanbanStatus) => {
+    const review = getKanbanReview(item);
+    if (review === 'Disetujui' || review === 'Ditolak') {
+      alert('Task yang sudah disetujui atau ditolak tidak dapat diubah statusnya.');
+      return;
+    }
     try {
       const res = await api.saveKanban(user.email, pin, {
         no: item.No || item.Plan_ID,
         id: String(item.No || item.Plan_ID),
         task: getKanbanTask(item),
-        user: user.nama,
+        peserta: user.nama,
+        user: getKanbanUser(item) || user.nama,
         userId: user.userId,
         mentorId: user.mentorId,
         priority: getKanbanPriority(item),
@@ -284,7 +302,7 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
         start: getKanbanStartDate(item) !== '-' ? getKanbanStartDate(item) : '',
         end: newStatus === 'Done' ? (getKanbanEndDate(item) !== '-' ? getKanbanEndDate(item) : data.today) : (getKanbanEndDate(item) !== '-' ? getKanbanEndDate(item) : ''),
         evidence: getKanbanEvidence(item),
-        review: getKanbanReview(item),
+        review: review,
         targetMingguan: getKanbanTask(item),
         mingguKe: getKanbanDueDate(item),
       });
@@ -306,13 +324,22 @@ export const PesertaView: React.FC<Props> = ({ user, data, pin, onRefresh }) => 
       return;
     }
 
+    if (editingKanban) {
+      const review = getKanbanReview(editingKanban);
+      if (review === 'Disetujui' || review === 'Ditolak') {
+        setKanbanError('Task yang sudah disetujui atau ditolak tidak dapat diedit.');
+        return;
+      }
+    }
+
     setKanbanLoading(true);
     try {
       const res = await api.saveKanban(user.email, pin, {
         no: editingKanban ? (editingKanban.No || editingKanban.Plan_ID) : undefined,
         id: editingKanban ? String(editingKanban.No || editingKanban.Plan_ID) : undefined,
         task: kanbanForm.task.trim(),
-        user: user.nama,
+        peserta: user.nama,
+        user: editingKanban ? getKanbanUser(editingKanban) : user.nama,
         userId: user.userId,
         mentorId: user.mentorId,
         priority: kanbanForm.priority,

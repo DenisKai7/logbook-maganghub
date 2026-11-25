@@ -8,6 +8,7 @@ import {
   KANBAN_REVIEW_OPTIONS,
   getKanbanNo,
   getKanbanTask,
+  getKanbanPeserta,
   getKanbanUser,
   getKanbanPriority,
   getKanbanStatus,
@@ -15,6 +16,7 @@ import {
   getKanbanStartDate,
   getKanbanEndDate,
   getKanbanReview,
+  getKanbanNotes,
   getKanbanEvidence,
   KanbanStatus,
   KanbanPriority,
@@ -130,6 +132,12 @@ export const KanbanBoard: React.FC<Props> = ({
                 </th>
                 <th className="py-2.5 px-3.5 border-r border-blue-900/50 min-w-[140px] whitespace-nowrap">
                   <div className="flex items-center justify-between gap-1">
+                    <span>Peserta</span>
+                    <ChevronDown className="w-3 h-3 text-blue-200/70" />
+                  </div>
+                </th>
+                <th className="py-2.5 px-3.5 border-r border-blue-900/50 min-w-[120px] whitespace-nowrap">
+                  <div className="flex items-center justify-between gap-1">
                     <span>User</span>
                     <ChevronDown className="w-3 h-3 text-blue-200/70" />
                   </div>
@@ -170,6 +178,12 @@ export const KanbanBoard: React.FC<Props> = ({
                     <ChevronDown className="w-3 h-3 text-blue-200/70" />
                   </div>
                 </th>
+                <th className="py-2.5 px-3.5 border-r border-blue-900/50 min-w-[160px]">
+                  <div className="flex items-center justify-between gap-1">
+                    <span>Notes</span>
+                    <ChevronDown className="w-3 h-3 text-blue-200/70" />
+                  </div>
+                </th>
                 {(editable || mentorMode) && (
                   <th className="py-2.5 px-3 text-center w-28 whitespace-nowrap">
                     Aksi
@@ -182,7 +196,7 @@ export const KanbanBoard: React.FC<Props> = ({
               {items.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={editable || mentorMode ? 11 : 10}
+                    colSpan={editable || mentorMode ? 13 : 12}
                     className="py-12 text-center text-slate-400 dark:text-[#858585] bg-slate-50/50 dark:bg-[#252526]"
                   >
                     {emptyMessage}
@@ -192,13 +206,15 @@ export const KanbanBoard: React.FC<Props> = ({
                 items.map((item, idx) => {
                   const no = getKanbanNo(item, idx);
                   const task = getKanbanTask(item);
-                  const userStr = getKanbanUser(item, users);
+                  const pesertaStr = getKanbanPeserta(item, users);
+                  const userStr = getKanbanUser(item);
                   const priority = getKanbanPriority(item);
                   const status = getKanbanStatus(item);
                   const dueDate = getKanbanDueDate(item);
                   const review = getKanbanReview(item);
+                  const notes = getKanbanNotes(item);
                   const evidence = getKanbanEvidence(item);
-                  const isApproved = review === 'Disetujui';
+                  const isLocked = review === 'Disetujui' || review === 'Ditolak';
 
                   return (
                     <tr
@@ -214,6 +230,9 @@ export const KanbanBoard: React.FC<Props> = ({
                         </div>
                       </td>
                       <td className="py-2.5 px-3.5 whitespace-nowrap font-medium text-slate-800 dark:text-[#cccccc] border-r border-[#cfe6ce] dark:border-[#2d2d2d]">
+                        {pesertaStr}
+                      </td>
+                      <td className="py-2.5 px-3.5 whitespace-nowrap text-slate-700 dark:text-[#cccccc] border-r border-[#cfe6ce] dark:border-[#2d2d2d]">
                         {userStr}
                       </td>
                       <td className="py-2.5 px-3 text-center border-r border-[#cfe6ce] dark:border-[#2d2d2d] whitespace-nowrap">
@@ -280,10 +299,15 @@ export const KanbanBoard: React.FC<Props> = ({
                           <StatusBadge status={review} size="sm" />
                         )}
                       </td>
+                      <td className="py-2.5 px-3.5 text-slate-600 dark:text-[#858585] border-r border-[#cfe6ce] dark:border-[#2d2d2d]">
+                        <div className="whitespace-pre-line max-w-[200px] text-[11px]">
+                          {notes || <span className="text-slate-400 dark:text-[#666666]">-</span>}
+                        </div>
+                      </td>
                       {(editable || mentorMode) && (
                         <td className="py-2.5 px-2 text-center whitespace-nowrap">
                           <div className="flex items-center justify-center gap-1">
-                            {editable && !isApproved && onEdit && (
+                            {editable && !isLocked && onEdit && (
                               <button
                                 type="button"
                                 onClick={() => onEdit(item)}
@@ -294,7 +318,7 @@ export const KanbanBoard: React.FC<Props> = ({
                               </button>
                             )}
 
-                            {editable && review === 'Menunggu' && onDelete && (
+                            {editable && !isLocked && onDelete && (
                               <button
                                 type="button"
                                 onClick={() => onDelete(item)}

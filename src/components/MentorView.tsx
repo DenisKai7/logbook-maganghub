@@ -13,6 +13,7 @@ import {
   KanbanStatus,
   KanbanPriority,
   getKanbanTask,
+  getKanbanPeserta,
   getKanbanUser,
   getKanbanPriority,
   getKanbanStatus,
@@ -20,6 +21,7 @@ import {
   getKanbanStartDate,
   getKanbanEndDate,
   getKanbanReview,
+  getKanbanNotes,
   getKanbanEvidence,
   getDailyDate,
   getDailyStart,
@@ -33,6 +35,7 @@ import {
   getDailyEvidence,
   getDailyStatusReview,
 } from '../types';
+
 import { api, getTodayStr } from '../api';
 import { StatusBadge } from './StatusBadge';
 import { Modal } from './Modal';
@@ -58,7 +61,9 @@ import {
   Award,
   ArrowUpRight,
   Filter,
-  Printer
+  Printer,
+  ChevronDown,
+  X
 } from 'lucide-react';
 
 interface Props {
@@ -137,6 +142,12 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
     evidence: '',
   });
   const [assignedTo, setAssignedTo] = useState<Set<string>>(new Set());
+  const [assignedBy, setAssignedBy] = useState<Set<string>>(new Set([user.nama]));
+  const [customAssigner, setCustomAssigner] = useState('');
+  const [pesertaOpen, setPesertaOpen] = useState(false);
+  const [assignerOpen, setAssignerOpen] = useState(false);
+  const pesertaRef = React.useRef<HTMLDivElement>(null);
+  const assignerRef = React.useRef<HTMLDivElement>(null);
   const [kanbanLoading, setKanbanLoading] = useState(false);
   const [kanbanError, setKanbanError] = useState('');
 
@@ -161,8 +172,8 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
       if (selectedMentee !== 'all') {
         const targetMentee = data.mentees.find(m => m.userId === selectedMentee);
         if (w.User_ID && String(w.User_ID).trim() === selectedMentee) return true;
-        const resolvedUser = getKanbanUser(w, data.mentees).toLowerCase();
-        if (targetMentee && resolvedUser.includes(targetMentee.nama.toLowerCase())) return true;
+        const resolvedPeserta = getKanbanPeserta(w, data.mentees).toLowerCase();
+        if (targetMentee && resolvedPeserta.includes(targetMentee.nama.toLowerCase())) return true;
         return false;
       }
       return true;
@@ -190,7 +201,9 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
   const pendingDailyCount = useMemo(() => menteeDaily.filter(d => d.Status === 'Menunggu').length, [menteeDaily]);
   const revisionDailyCount = useMemo(() => menteeDaily.filter(d => d.Status === 'Revisi').length, [menteeDaily]);
   const pendingWeeklyCount = useMemo(() => menteeWeekly.filter(w => w.Status === 'Menunggu').length, [menteeWeekly]);
+  const pendingKanbanReviewCount = useMemo(() => menteeWeekly.filter(w => getKanbanReview(w) === 'Menunggu').length, [menteeWeekly]);
   const totalPending = pendingDailyCount + pendingWeeklyCount;
+  const totalKanbanPending = pendingKanbanReviewCount;
   const approvalRate = totalLogs > 0 ? Math.round((approvedDailyCount / totalLogs) * 100) : 0;
 
   // Obstacle counts
@@ -398,6 +411,8 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
       evidence: '',
     });
     setAssignedTo(new Set());
+    setAssignedBy(new Set([user.nama]));
+    setCustomAssigner('');
     setKanbanError('');
     setKanbanModalOpen(true);
   };
@@ -409,6 +424,19 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
     setAssignedTo(next);
   };
 
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (pesertaRef.current && !pesertaRef.current.contains(event.target as Node)) {
+        setPesertaOpen(false);
+      }
+      if (assignerRef.current && !assignerRef.current.contains(event.target as Node)) {
+        setAssignerOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const toggleAllAssignees = () => {
     if (assignedTo.size === data.mentees.length) {
       setAssignedTo(new Set());
@@ -416,6 +444,39 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
       setAssignedTo(new Set(data.mentees.map(m => m.userId)));
     }
   };
+
+  const toggleAssigner = (name: string) => {
+    const next = new Set(assignedBy);
+    const trimmed = name.trim();
+    if (next.has(trimmed)) next.delete(trimmed);
+    else next.add(trimmed);
+    setAssignedBy(next);
+  };
+
+  const assignerOptions = useMemo(() => {
+    const mentors = data.mentors || [];
+    const base = mentors.length > 0 ? mentors : [{ userId: user.userId, nama: user.nama, divisi: user.divisi }];
+    return base;
+  }, [data.mentors, user]);
+
+  const selectedAssignerLabels = useMemo(() => {
+    const labels: string[] = [];
+    assignerOptions.forEach(m => {
+      if (assignedBy.has(m.nama)) labels.push(`${m.nama} ${m.nama === user.nama ? '(saya)' : ''}`.trim());
+    });
+    // Tampilkan juga custom assigner yang sudah masuk ke assignedBy
+    assignedBy.forEach(name => {
+      const isKnown = assignerOptions.some(m => m.nama === name);
+      if (!isKnown) labels.push(name);
+    });
+    return labels;
+  }, [assignedBy, assignerOptions, user.nama]);
+
+  const selectedPesertaLabels = useMemo(() => {
+    return data.mentees
+      .filter(m => assignedTo.has(m.userId))
+      .map(m => m.nama);
+  }, [assignedTo, data.mentees]);
 
   const handleSaveKanban = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -428,12 +489,21 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
       setKanbanError('Pilih minimal satu peserta yang ditugaskan.');
       return;
     }
+    if (assignedBy.size === 0 && !customAssigner.trim()) {
+      setKanbanError('Pilih minimal satu user yang menugaskan.');
+      return;
+    }
 
     setKanbanLoading(true);
     try {
       const assignedList = data.mentees
         .filter(m => assignedTo.has(m.userId))
         .map(m => ({ userId: m.userId, nama: m.nama }));
+
+      const assignerList = Array.from(assignedBy);
+      if (customAssigner.trim() && !assignedBy.has(customAssigner.trim())) {
+        assignerList.push(customAssigner.trim());
+      }
 
       const res = await api.saveKanban(user.email, pin, {
         task: kanbanForm.task.trim(),
@@ -444,6 +514,7 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
         end: kanbanForm.end,
         evidence: kanbanForm.evidence.trim(),
         assignedTo: assignedList,
+        assigners: assignerList,
       });
 
       if (res.status === 'success') {
@@ -489,6 +560,12 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
             <div className="inline-flex items-center gap-2 px-3.5 py-2 bg-amber-50 dark:bg-[#342c15] border border-amber-200/80 dark:border-[#5a4d22] rounded-xl text-amber-900 dark:text-[#dcdcaa] text-xs font-medium self-start sm:self-center shadow-xs">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
               <span>{totalPending} item menunggu tinjauan Anda</span>
+            </div>
+          )}
+          {totalKanbanPending > 0 && (
+            <div className="inline-flex items-center gap-2 px-3.5 py-2 bg-blue-50 dark:bg-[#1e2733] border border-blue-200/80 dark:border-[#264f78] rounded-xl text-blue-900 dark:text-[#9cdcfe] text-xs font-medium self-start sm:self-center shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
+              <span>{totalKanbanPending} kanban menunggu review</span>
             </div>
           )}
         </div>
@@ -1079,11 +1156,11 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
               openReview(
                 String(item.No || item.Plan_ID),
                 'kanban',
-                getKanbanUser(item, data.mentees),
+                getKanbanPeserta(item, data.mentees),
                 `Task: ${getKanbanTask(item)}`,
                 getKanbanTask(item),
                 (getKanbanReview(item) as ItemStatus) || 'Menunggu',
-                item.Catatan_Mentor || '',
+                getKanbanNotes(item),
                 getKanbanEvidence(item),
                 '',
                 {
@@ -1093,7 +1170,7 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                   kanbanStart: getKanbanStartDate(item),
                   kanbanEnd: getKanbanEndDate(item),
                   evidence: getKanbanEvidence(item),
-                  assignedTo: getKanbanUser(item, data.mentees),
+                  assignedTo: getKanbanPeserta(item, data.mentees),
                   mentorName: user.nama,
                 }
               )
@@ -1212,6 +1289,10 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
                 <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838]">
                   <span className="text-[10px] text-slate-400 dark:text-[#858585] block">Assigned To</span>
                   <span className="font-medium text-slate-800 dark:text-[#cccccc]">{reviewTarget.assignedTo || '-'}</span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838]">
+                  <span className="text-[10px] text-slate-400 dark:text-[#858585] block">Notes Review</span>
+                  <span className="font-medium text-slate-800 dark:text-[#cccccc]">{reviewNote || reviewTarget.catatan || '-'}</span>
                 </div>
               </div>
             )}
@@ -1435,32 +1516,158 @@ export const MentorView: React.FC<Props> = ({ user, data, pin, onRefresh }) => {
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] mb-1.5">
-              Ditugaskan Ke <span className="text-rose-500">*</span>
-            </label>
-            <div className="border border-slate-200 dark:border-[#383838] rounded-xl p-3 space-y-2 max-h-48 overflow-y-auto bg-slate-50/50 dark:bg-[#1e1e1e]">
-              <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-[#d4d4d4] pb-2 border-b border-slate-200 dark:border-[#383838] cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={assignedTo.size === data.mentees.length && data.mentees.length > 0}
-                  onChange={toggleAllAssignees}
-                  className="rounded border-slate-300 text-[#0b4e8c] focus:ring-[#0b4e8c]"
-                />
-                Pilih Semua ({data.mentees.length} Peserta)
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Dropdown Peserta */}
+            <div className="relative" ref={pesertaRef}>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-[#d4d4d4] mb-2">
+                Ditugaskan Ke (Peserta) <span className="text-rose-500">*</span>
               </label>
-              {data.mentees.map(m => (
-                <label key={m.userId} className="flex items-center gap-2 text-xs text-slate-700 dark:text-[#cccccc] cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={assignedTo.has(m.userId)}
-                    onChange={() => toggleAssignee(m.userId)}
-                    className="rounded border-slate-300 text-[#0b4e8c] focus:ring-[#0b4e8c]"
-                  />
-                  <span>{m.nama}</span>
-                  <span className="text-[10px] text-slate-400 dark:text-[#858585]">({m.divisi})</span>
-                </label>
-              ))}
+              <button
+                type="button"
+                onClick={() => setPesertaOpen(o => !o)}
+                className="w-full flex items-center justify-between px-3.5 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-[#383838] bg-white dark:bg-[#1e1e1e] text-slate-700 dark:text-[#cccccc] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc]"
+              >
+                <span className="truncate">
+                  {selectedPesertaLabels.length > 0
+                    ? `${selectedPesertaLabels.length} peserta dipilih`
+                    : 'Pilih peserta...'}
+                </span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${pesertaOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {pesertaOpen && (
+                <div className="absolute z-30 mt-1.5 w-full border border-slate-200 dark:border-[#383838] rounded-xl bg-white dark:bg-[#1e1e1e] shadow-xl max-h-[min(24rem,60vh)] overflow-y-auto" style={{ maxHeight: 'min(24rem, 60vh)' }}>
+                  <label className="flex items-center gap-2.5 text-sm font-semibold text-slate-700 dark:text-[#d4d4d4] px-3.5 py-2.5 border-b border-slate-200 dark:border-[#383838] cursor-pointer sticky top-0 bg-white dark:bg-[#1e1e1e]">
+                    <input
+                      type="checkbox"
+                      checked={assignedTo.size === data.mentees.length && data.mentees.length > 0}
+                      onChange={toggleAllAssignees}
+                      className="rounded border-slate-300 text-[#0b4e8c] focus:ring-[#0b4e8c] w-4 h-4"
+                    />
+                    Pilih Semua ({data.mentees.length} Peserta)
+                  </label>
+                  {data.mentees.map(m => (
+                    <label key={m.userId} className="flex items-center gap-2.5 text-sm text-slate-700 dark:text-[#cccccc] px-3.5 py-2.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-[#252526]">
+                      <input
+                        type="checkbox"
+                        checked={assignedTo.has(m.userId)}
+                        onChange={() => toggleAssignee(m.userId)}
+                        className="rounded border-slate-300 text-[#0b4e8c] focus:ring-[#0b4e8c] w-4 h-4"
+                      />
+                      <span>{m.nama}</span>
+                      <span className="text-xs text-slate-400 dark:text-[#858585]">({m.divisi})</span>
+                    </label>
+                  ))}
+                  {/* Sentinel agar item paling bawah tidak terpotong oleh padding modal */}
+                  <div className="h-4" />
+                </div>
+              )}
+              {selectedPesertaLabels.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {selectedPesertaLabels.map(name => (
+                    <span key={name} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-[#1e2733] text-xs text-[#0b4e8c] dark:text-[#9cdcfe] border border-blue-200 dark:border-[#264f78]">
+                      {name}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const m = data.mentees.find(x => x.nama === name);
+                          if (m) toggleAssignee(m.userId);
+                        }}
+                        className="hover:text-rose-600"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Dropdown User yang Menugaskan */}
+            <div className="relative" ref={assignerRef}>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-[#d4d4d4] mb-2">
+                User yang Menugaskan <span className="text-rose-500">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setAssignerOpen(o => !o)}
+                className="w-full flex items-center justify-between px-3.5 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-[#383838] bg-white dark:bg-[#1e1e1e] text-slate-700 dark:text-[#cccccc] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c] dark:focus:ring-[#007acc]"
+              >
+                <span className="truncate">
+                  {selectedAssignerLabels.length > 0
+                    ? selectedAssignerLabels.join(', ')
+                    : 'Pilih user...'}
+                </span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${assignerOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {assignerOpen && (
+                <div className="absolute z-30 mt-1.5 w-full border border-slate-200 dark:border-[#383838] rounded-xl bg-white dark:bg-[#1e1e1e] shadow-xl max-h-[min(24rem,60vh)] overflow-y-auto" style={{ maxHeight: 'min(24rem, 60vh)' }}>
+                  {assignerOptions.map(m => (
+                    <label key={`assigner-${m.userId}`} className="flex items-center gap-2.5 text-sm text-slate-700 dark:text-[#cccccc] px-3.5 py-2.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-[#252526]">
+                      <input
+                        type="checkbox"
+                        checked={assignedBy.has(m.nama)}
+                        onChange={() => toggleAssigner(m.nama)}
+                        className="rounded border-slate-300 text-[#0b4e8c] focus:ring-[#0b4e8c] w-4 h-4"
+                      />
+                      <span>{m.nama}</span>
+                      {m.nama === user.nama && <span className="text-xs text-slate-400 dark:text-[#858585]">(saya)</span>}
+                      {m.nama !== user.nama && <span className="text-xs text-slate-400 dark:text-[#858585]">({m.divisi})</span>}
+                    </label>
+                  ))}
+                  <div className="px-3.5 py-3 border-t border-slate-200 dark:border-[#383838]">
+                    <label className="block text-xs font-medium text-slate-500 dark:text-[#858585] mb-1.5">Atau isi manual</label>
+                    <input
+                      type="text"
+                      placeholder="Nama user lain..."
+                      value={customAssigner}
+                      onChange={e => setCustomAssigner(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && customAssigner.trim()) {
+                          e.preventDefault();
+                          toggleAssigner(customAssigner.trim());
+                          setCustomAssigner('');
+                        }
+                      }}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-[#383838] bg-slate-50 dark:bg-[#252526] text-slate-700 dark:text-[#cccccc] focus:outline-none focus:ring-2 focus:ring-[#0b4e8c]"
+                    />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const trimmed = customAssigner.trim();
+                          if (trimmed) {
+                            toggleAssigner(trimmed);
+                            setCustomAssigner('');
+                          }
+                        }}
+                        disabled={!customAssigner.trim()}
+                        className="mt-2 w-full px-3 py-1.5 text-xs font-medium rounded-lg bg-[#0b4e8c] disabled:bg-slate-300 dark:disabled:bg-[#383838] text-white cursor-pointer"
+                      >
+                        Tambah User Manual
+                      </button>
+                  </div>
+                  {/* Sentinel agar item paling bawah tidak terpotong oleh padding modal */}
+                  <div className="h-4" />
+                </div>
+              )}
+              {selectedAssignerLabels.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {selectedAssignerLabels.map(name => (
+                    <span key={name} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-[#1b3424] text-xs text-emerald-800 dark:text-[#4ec9b0] border border-emerald-200 dark:border-[#2e6040]">
+                      {name}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (assignedBy.has(name)) toggleAssigner(name);
+                          else if (customAssigner.trim() === name) setCustomAssigner('');
+                        }}
+                        className="hover:text-rose-600"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

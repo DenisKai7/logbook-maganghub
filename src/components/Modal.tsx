@@ -32,7 +32,7 @@ export const Modal: React.FC<Props> = ({ isOpen, onClose, title, subtitle, child
         className="fixed inset-0 bg-slate-900/50 dark:bg-black/70 backdrop-blur-xs transition-opacity duration-200"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-xl bg-white dark:bg-[#252526] rounded-2xl border border-slate-200 dark:border-[#383838] shadow-2xl z-10 overflow-hidden my-8 animate-fade-in-up transition-colors duration-200">
+      <div className="relative w-full max-w-xl bg-white dark:bg-[#252526] rounded-2xl border border-slate-200 dark:border-[#383838] shadow-2xl z-10 overflow-visible my-8 animate-fade-in-up transition-colors duration-200">
         <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-slate-100 dark:border-[#2d2d2d]">
           <div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white tracking-tight">{title}</h3>

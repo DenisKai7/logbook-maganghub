@@ -157,11 +157,13 @@ function getInitialMockDB(): MockDB {
       {
         No: 1,
         Task: "Menyelesaikan desain antarmuka dashboard dan integrasi API autentikasi peserta.",
-        User: "Andi Pratama",
+        Peserta: "Andi Pratama",
+        User: "Budi Santoso",
         Priority: "High",
         Status: "In Progress",
         "Due Date": getCurrentIsoWeek(),
         Review: "Menunggu",
+        Notes: "",
         Plan_ID: "WP-001",
         Tanggal_Input: getTodayStr(),
         Minggu_Ke: getCurrentIsoWeek(),
@@ -499,9 +501,13 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
       const mentees = db.users
         .filter((u) => u.role === "Peserta" && u.mentorId === user.userId)
         .map((u) => ({ userId: u.userId, nama: u.nama, divisi: u.divisi }));
+      const mentors = db.users
+        .filter((u) => u.role === "Mentor")
+        .map((u) => ({ userId: u.userId, nama: u.nama, divisi: u.divisi }));
 
       const data: MentorData = {
         mentees,
+        mentors,
         weeklyPlans: db.weeklyPlans
           .filter((w) => w.Mentor_ID === user.userId)
           .slice()
@@ -575,7 +581,8 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
         db.weeklyPlans.push({
           No: nextNo,
           Task: taskVal,
-          User: String(assignee.nama || "").trim(),
+          Peserta: String(assignee.nama || "").trim(),
+          User: user.nama,
           Priority: priorityVal,
           Status: statusVal,
           "Due Date": dueDateVal,
@@ -584,6 +591,7 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
           End: endVal,
           Evidence: evidenceVal,
           Review: reviewVal,
+          Notes: "",
           User_ID: String(assignee.userId || "").trim(),
           Mentor_ID: user.userId,
           Plan_ID: "WP-" + String(nextNo).padStart(3, "0"),
@@ -642,6 +650,7 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
     const newKanban: any = {
       No: nextNo,
       Task: taskVal,
+      Peserta: user.nama,
       User: user.nama,
       Priority: priorityVal,
       Status: statusVal,
@@ -651,6 +660,7 @@ function mockExecute<T>(req: Record<string, any>): ApiResponse<T> {
       End: endVal,
       Evidence: evidenceVal,
       Review: reviewVal,
+      Notes: "",
       User_ID: user.userId,
       Mentor_ID: user.mentorId || "",
 
@@ -977,6 +987,7 @@ export const api = {
       no?: string | number;
       task: string;
       user?: string;
+      peserta?: string | string[];
       priority?: string;
       status?: string;
       dueDate?: string;
@@ -984,9 +995,11 @@ export const api = {
       end?: string;
       evidence?: string;
       review?: string;
+      notes?: string;
       userId?: string;
       mentorId?: string;
       assignedTo?: Array<{ userId: string; nama: string }>;
+      assigners?: string[];
       id?: string;
       planId?: string;
       targetMingguan?: string;

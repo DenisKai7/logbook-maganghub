@@ -17,6 +17,7 @@ import {
   getDailyMenteeName,
   isTotalSummaryRow,
   getDailyStatusReview,
+  isDailyEditable,
 } from '../types';
 import { StatusBadge } from './StatusBadge';
 import {
@@ -198,8 +199,7 @@ export const SpreadsheetDailyTable: React.FC<Props> = ({
                 const note = getDailyNote(item);
                 const evidence = getDailyEvidence(item);
                 const menteeName = getDailyMenteeName(item, users);
-                const isApproved = actStatus === 'Done' || item.Status === 'Disetujui';
-                const isPending = actStatus === 'On Progress' || item.Status === 'Menunggu';
+                const canEdit = editable && isDailyEditable(item);
 
                 return (
                   <tr
@@ -323,7 +323,7 @@ export const SpreadsheetDailyTable: React.FC<Props> = ({
                     {editable && (
                       <td className="py-2.5 px-2 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1">
-                          {!isApproved && onEdit && (
+                          {canEdit && onEdit && (
                             <button
                               onClick={() => onEdit(item)}
                               className="p-1.5 text-slate-500 hover:text-[#0b4e8c] dark:hover:text-white rounded-lg hover:bg-white dark:hover:bg-[#383838] transition-colors cursor-pointer border border-slate-300 dark:border-[#383838]"
@@ -333,7 +333,7 @@ export const SpreadsheetDailyTable: React.FC<Props> = ({
                             </button>
                           )}
 
-                          {!isApproved && onDelete && (
+                          {canEdit && onDelete && (
                             <button
                               onClick={() => onDelete(item)}
                               disabled={deletingId === (item.Log_ID || String(no))}

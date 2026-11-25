@@ -103,6 +103,19 @@ export const StatusBadge: React.FC<Props> = ({ status, size = 'md' }) => {
     );
   }
 
+  if (clean === 'Ditugaskan') {
+    return (
+      <span
+        className={`inline-flex items-center gap-1.5 font-medium rounded-full transition-colors ${
+          isSm ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-xs'
+        } bg-violet-100/80 text-violet-800 border border-violet-300 dark:bg-[#2e1d38] dark:text-[#c586c0] dark:border-[#4d2d5e]`}
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-violet-600 dark:bg-[#c586c0]" />
+        Ditugaskan
+      </span>
+    );
+  }
+
   if (clean === 'Revisi') {
     return (
       <span

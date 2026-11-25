@@ -21,11 +21,17 @@ export type TargetStatus = typeof TARGET_STATUS_OPTIONS[number];
 export const KANBAN_PRIORITY_OPTIONS = ['Low', 'Medium', 'High', 'Urgent'] as const;
 export type KanbanPriority = typeof KANBAN_PRIORITY_OPTIONS[number];
 
-export const KANBAN_STATUS_OPTIONS = ['To Do', 'In Progress', 'In Review', 'Done', 'Blocked'] as const;
+// ponytail: status yang bisa diinput peserta dibatasi sesuai instruksi (To Do, In Progress, Done, Canceled).
+// Jika nanti ingin menambahkan 'Blocked' lagi, expand array ini dan update dropdown validasi spreadsheet.
+export const KANBAN_STATUS_OPTIONS = ['To Do', 'In Progress', 'Done', 'Canceled'] as const;
 export type KanbanStatus = typeof KANBAN_STATUS_OPTIONS[number];
 
-export const KANBAN_REVIEW_OPTIONS = ['Menunggu', 'Disetujui', 'Revisi', 'Ditolak'] as const;
+// Status review kanban: Ditugaskan = baru dibuat mentor, Menunggu = sudah diupdate peserta menunggu review mentor
+export const KANBAN_REVIEW_OPTIONS = ['Ditugaskan', 'Menunggu', 'Disetujui', 'Revisi', 'Ditolak'] as const;
 export type KanbanReview = typeof KANBAN_REVIEW_OPTIONS[number];
+
+export const DAILY_REVIEW_OPTIONS = ['Menunggu', 'Disetujui', 'Revisi', 'Ditolak'] as const;
+export type DailyReview = typeof DAILY_REVIEW_OPTIONS[number];
 
 export interface User {
   userId: string;
@@ -45,6 +51,7 @@ export interface MenteeSummary {
 export interface KanbanItem {
   No?: string | number;
   Task?: string;
+  Peserta?: string;
   User?: string;
   Priority?: KanbanPriority | string;
   Status?: KanbanStatus | string;
@@ -57,6 +64,7 @@ export interface KanbanItem {
   'End Date'?: string;
   Evidence?: string;
   Review?: KanbanReview | string;
+  Notes?: string;
   User_ID?: string;
   Mentor_ID?: string;
   _rowIndex?: number;
@@ -81,14 +89,19 @@ export function getKanbanTask(k: KanbanItem): string {
   return k.Task || k.Target_Mingguan || '-';
 }
 
-export function getKanbanUser(k: KanbanItem, users?: Array<User | MenteeSummary>): string {
-  if (k.User && k.User.trim() !== '') return k.User.trim();
+export function getKanbanPeserta(k: KanbanItem, users?: Array<User | MenteeSummary>): string {
+  if (k.Peserta && k.Peserta.trim() !== '') return k.Peserta.trim();
   if (k.Nama_Peserta && k.Nama_Peserta.trim() !== '') return k.Nama_Peserta.trim();
+  if (k.User && k.User.trim() !== '') return k.User.trim();
   if (k.User_ID && users) {
     const found = users.find(u => String(u.userId).trim() === String(k.User_ID).trim());
     if (found) return found.nama;
   }
   return '-';
+}
+
+export function getKanbanUser(k: KanbanItem, _users?: Array<User | MenteeSummary>): string {
+  return k.User || '-';
 }
 
 export function getKanbanPriority(k: KanbanItem): KanbanPriority {
@@ -98,9 +111,9 @@ export function getKanbanPriority(k: KanbanItem): KanbanPriority {
 
 export function getKanbanStatus(k: KanbanItem): KanbanStatus {
   const s = (k.Status || 'To Do') as KanbanStatus;
+  // Status field pada spreadsheet hanya boleh berisi status kerja (To Do, In Progress, Done, Canceled).
+  // Status review (Menunggu/Disetujui/Revisi/Ditolak) sudah dipindah ke kolom Review.
   if (KANBAN_STATUS_OPTIONS.includes(s)) return s;
-  if ((s as string) === 'Disetujui') return 'Done';
-  if ((s as string) === 'Revisi') return 'In Review';
   return 'To Do';
 }
 
@@ -117,12 +130,13 @@ export function getKanbanEndDate(k: KanbanItem): string {
 }
 
 export function getKanbanReview(k: KanbanItem): KanbanReview {
-  const r = (k.Review || k.Catatan_Mentor || 'Menunggu') as KanbanReview;
+  const r = (k.Review || 'Menunggu') as KanbanReview;
   if (KANBAN_REVIEW_OPTIONS.includes(r)) return r;
-  if (k.Status && KANBAN_REVIEW_OPTIONS.includes(k.Status as any)) {
-    return k.Status as KanbanReview;
-  }
   return 'Menunggu';
+}
+
+export function getKanbanNotes(k: KanbanItem): string {
+  return k.Notes || k.Catatan_Mentor || '';
 }
 
 export function getKanbanEvidence(k: KanbanItem): string {
@@ -163,9 +177,31 @@ export interface DailyActivity {
   Deskripsi_Aktivitas?: string;
   Output_Link?: string;
   Kendala?: string;
-  Status?: ItemStatus | string;
+  Status?: DailyReview | string;
   Catatan_Mentor?: string;
   rowIndex?: number;
+}
+
+export interface HRData {
+  today: string;
+  users: User[];
+  kanbanItems?: KanbanItem[];
+  weeklyPlans: WeeklyPlan[];
+  dailyActivities: DailyActivity[];
+}
+
+export interface HRData {
+  today: string;
+  users: User[];
+  kanbanItems?: KanbanItem[];
+  weeklyPlans: WeeklyPlan[];
+  dailyActivities: DailyActivity[];
+}
+
+// Helper: daily activity boleh di-edit/hapus oleh peserta hanya saat status review Menunggu
+export function isDailyEditable(d: DailyActivity): boolean {
+  const review = getDailyStatusReview(d);
+  return review === 'Menunggu';
 }
 
 // Accessor helpers to seamlessly support both new and legacy formats
@@ -257,6 +293,7 @@ export interface PesertaData {
 
 export interface MentorData {
   mentees: MenteeSummary[];
+  mentors?: MenteeSummary[];
   kanbanItems?: KanbanItem[];
   weeklyPlans: WeeklyPlan[];
   dailyActivities: DailyActivity[];
